@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-5">
+  <div class="t-label t-accent mb-1">Research Timeline</div>
+  <h2 class="t-h2">All Research Events</h2>
+  <p class="t-secondary mt-2">Real timestamps from sources, investigations, evidence, findings, and reports in your workspace. No fabricated entries.</p>
+</div>
+
+{% if events %}
+<div class="timeline-list" style="max-width: 720px;">
+  {% set prev_date = namespace(value='') %}
+  {% for event in events %}
+    {% set event_date = event.timestamp[:10] if event.timestamp else 'Unknown' %}
+    {% if event_date != prev_date.value %}
+    <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-secondary,#b2afa8); padding:1.25rem 0 0.5rem; border-bottom:1px solid rgba(255,255,255,0.06); margin-bottom:0.25rem;">
+      {{ event_date }}
+    </div>
+    {% set prev_date.value = event_date %}
+    {% endif %}
+    <a href="{{ event.url }}" style="display:flex; align-items:flex-start; gap:1rem; padding:0.75rem 0; border-bottom:1px solid rgba(255,255,255,0.04); text-decoration:none; transition:background 0.15s;">
+      <div style="width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:0.35rem; background:{% if event.entity_type == 'source' %}#b5c422{% elif event.entity_type == 'investigation' %}#e2e0db{% elif event.entity_type == 'evidence' %}#9ab568{% elif event.entity_type == 'finding' %}#b5c422{% else %}#8b8984{% endif %};"></div>
+      <div style="flex:1;">
+        <div class="t-label" style="font-size:0.62rem; margin-bottom:0.15rem;">{{ event.entity_type.upper() }}</div>
+        <div class="t-primary font-medium" style="font-size:0.9rem; margin-bottom:0.2rem;">{{ event.title }}</div>
+        {% if event.timestamp %}
+        <div class="t-muted" style="font-size:0.72rem;">{{ event.timestamp[:16].replace('T', ' ') }}</div>
+        {% endif %}
+      </div>
+    </a>
+  {% endfor %}
+</div>
+{% else %}
+<div style="background:var(--bg-surface); border:1px solid var(--border-default); border-radius:var(--radius-md); padding:3rem 1.5rem; text-align:center; max-width:600px; margin:0 auto;">
+  <div class="t-h3 mb-2">No research events yet</div>
+  <p class="t-secondary mb-4" style="font-size:0.85rem;">Import sources, create investigations, or record evidence to populate your research timeline.</p>
+  <a href="{{ url_for('sources') }}" class="btn btn-primary">Add Your First Source</a>
+</div>
+{% endif %}
+
+<div class="mt-5" style="border-top:1px solid var(--border-default); padding-top:1rem;">
+  <a href="{{ url_for('overview') }}" class="t-muted" style="font-size:0.82rem;">← Back to Overview</a>
+</div>
+{% endblock %}

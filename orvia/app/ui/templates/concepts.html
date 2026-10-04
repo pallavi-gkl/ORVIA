@@ -1,0 +1,555 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="concepts-container">
+
+  <!-- ── HEADER ────────────────────────────────────────────────────────────── -->
+  <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+    <div>
+      <div class="t-label t-accent mb-1">KNOWLEDGE EXTRACTION</div>
+      <h1 class="t-h1">Concept Intelligence</h1>
+      <p class="t-secondary mt-1" style="font-size: var(--text-sm);">
+        Deterministic structural analysis of recurring terms and multi-word phrases across your research collection.
+      </p>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-3">
+      <button class="btn btn-secondary btn-sm" id="rebuild-rels-btn" title="Recompute pairwise concept co-occurrences">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        Rebuild Relationships
+      </button>
+
+      <button class="btn btn-primary btn-sm" id="analyze-all-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Analyze Collection
+      </button>
+    </div>
+  </div>
+
+  <!-- ── 3 METRICS SUMMARY ────────────────────────────────────────────────── -->
+  <div class="overview-metrics-matrix stat-grid mb-6">
+    <div class="metric-cell">
+      <div class="metric-number">{{ summary.total_concepts }}</div>
+      <div class="metric-caption">Concepts Detected</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-number">{{ summary.total_sources_analyzed }}</div>
+      <div class="metric-caption">Sources Analyzed</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-number">{{ summary.avg_concepts_per_source }}</div>
+      <div class="metric-caption">Avg Concepts / Source</div>
+    </div>
+  </div>
+
+  <!-- ── CONTROLS ROW: SEARCH, NGRAM FILTER, SORT ──────────────────────────── -->
+  <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+    
+    <!-- Search within concepts -->
+    <form method="GET" action="{{ url_for('concepts_page') }}" class="flex items-center gap-2" style="flex: 1; max-width: 420px;">
+      <div class="cmd-input-wrap" style="width: 100%; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 0 12px; height: 38px; display: flex; align-items: center; gap: 8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; color: var(--text-muted); flex-shrink: 0;">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Filter concepts by name..." class="search-input" style="background: transparent; border: none; outline: none; color: var(--text-primary); font-size: var(--text-sm); width: 100%;">
+        {% if search_query %}
+        <a href="{{ url_for('concepts_page') }}" style="color: var(--text-muted); text-decoration: none; font-size: 13px;" title="Clear filter">✕</a>
+        {% endif %}
+      </div>
+      <input type="hidden" name="ngram" value="{{ ngram_filter }}">
+      <input type="hidden" name="sort" value="{{ sort_by }}">
+      <input type="hidden" name="order" value="{{ sort_dir }}">
+    </form>
+
+    <!-- Filter chips (All / Single / Multi-word) -->
+    <div class="filter-chips flex items-center gap-2">
+      <a href="{{ url_for('concepts_page', q=search_query, ngram='all', sort=sort_by, order=sort_dir) }}"
+         class="chip {% if ngram_filter == 'all' or not ngram_filter %}active{% endif %}">
+        All
+      </a>
+      <a href="{{ url_for('concepts_page', q=search_query, ngram='1', sort=sort_by, order=sort_dir) }}"
+         class="chip {% if ngram_filter == '1' %}active{% endif %}">
+        Single Words
+      </a>
+      <a href="{{ url_for('concepts_page', q=search_query, ngram='2', sort=sort_by, order=sort_dir) }}"
+         class="chip {% if ngram_filter == '2' %}active{% endif %}">
+        Phrases (n-grams)
+      </a>
+    </div>
+
+    <!-- Sort selector -->
+    <div class="flex items-center gap-2">
+      <span class="t-muted" style="font-size: var(--text-xs);">Sort by:</span>
+      <div class="flex items-center gap-1">
+        <a href="{{ url_for('concepts_page', q=search_query, ngram=ngram_filter, sort='frequency', order='desc') }}"
+           class="btn btn-ghost btn-sm {% if sort_by == 'frequency' %}t-accent{% endif %}" style="padding: 4px 8px; font-size: var(--text-xs);">
+          Frequency
+        </a>
+        <span class="t-muted">·</span>
+        <a href="{{ url_for('concepts_page', q=search_query, ngram=ngram_filter, sort='source_count', order='desc') }}"
+           class="btn btn-ghost btn-sm {% if sort_by == 'source_count' %}t-accent{% endif %}" style="padding: 4px 8px; font-size: var(--text-xs);">
+          Sources
+        </a>
+        <span class="t-muted">·</span>
+        <a href="{{ url_for('concepts_page', q=search_query, ngram=ngram_filter, sort='name', order='asc') }}"
+           class="btn btn-ghost btn-sm {% if sort_by == 'name' %}t-accent{% endif %}" style="padding: 4px 8px; font-size: var(--text-xs);">
+          Alphabetical
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── CONTEXTUAL CONCEPT FOCUS BAR ────────────────────────────────────── -->
+  <div id="concept-focus-bar" class="concept-focus-bar hidden" role="region" aria-label="Active concept focus details">
+    <div class="concept-focus-bar-main">
+      <span class="concept-focus-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path>
+        </svg>
+        Concept Focus
+      </span>
+      <span class="concept-focus-title">
+        Focused on: <strong id="focus-concept-name">—</strong>
+      </span>
+      <span class="t-muted">·</span>
+      <span id="focus-connection-text" class="concept-focus-status">
+        Observing connections...
+      </span>
+    </div>
+
+    <div class="concept-focus-actions">
+      <a id="focus-dossier-link" href="#" class="btn btn-ghost btn-sm" style="font-size: var(--text-xs); color: var(--accent);" title="Open complete concept intelligence dossier">
+        Open Dossier →
+      </a>
+      <button type="button" class="concept-focus-exit-btn" id="clear-focus-btn" title="Exit focus mode (Esc)">
+        ✕ Clear Focus <kbd>Esc</kbd>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── CONCEPTS TABLE / LIST ─────────────────────────────────────────────── -->
+  {% if concepts %}
+  <div class="table-wrap" style="background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-lg); overflow-x: auto;">
+    <table class="data-table" id="concepts-data-table">
+      <thead>
+        <tr>
+          <th style="width: 28%;">Concept</th>
+          <th style="width: 20%;">Structure &amp; Connections</th>
+          <th style="width: 15%;">Occurrences</th>
+          <th style="width: 21%;">Source Coverage</th>
+          <th style="width: 16%; text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="concepts-table-body">
+        {% for c in concepts %}
+        <tr class="concept-row"
+            id="concept-row-{{ c.id }}"
+            data-concept-id="{{ c.id }}"
+            data-concept-name="{{ c.name }}"
+            data-concept-display="{{ c.display }}"
+            tabindex="0"
+            role="button"
+            aria-pressed="false"
+            aria-label="Focus concept {{ c.display }}">
+          <td>
+            <div class="flex items-center gap-2">
+              <span class="concept-focus-pip" aria-hidden="true"></span>
+              <a href="{{ url_for('concept_detail', concept_id=c.id) }}"
+                 class="t-primary font-medium hover-accent concept-name-link"
+                 style="text-decoration: none; font-size: var(--text-base);"
+                 title="Click to focus connections · Ctrl+Click for dossier">
+                {{ c.display }}
+              </a>
+            </div>
+          </td>
+          <td>
+            <div class="flex items-center gap-2 flex-wrap">
+              {% if c.ngram_size == 1 %}
+                <span class="badge" style="background: var(--bg-surface-2); color: var(--text-secondary); border: 1px solid var(--border-subtle); font-size: 11px;">
+                  Single Word
+                </span>
+              {% else %}
+                <span class="badge badge-accent" style="font-size: 11px;">
+                  {{ c.ngram_size }}-word phrase
+                </span>
+              {% endif %}
+              <span class="concept-rel-pill" id="rel-pill-{{ c.id }}"></span>
+            </div>
+          </td>
+          <td>
+            <span class="t-mono font-medium" style="color: var(--text-primary);">
+              {{ '{:,}'.format(c.frequency) }}
+            </span>
+            <span class="t-muted" style="font-size: var(--text-xs); margin-left: 4px;">observed</span>
+          </td>
+          <td>
+            <div class="flex items-center gap-2">
+              <span class="t-mono" style="font-size: var(--text-sm);">{{ c.source_count }} src</span>
+              <span class="t-muted" style="font-size: var(--text-xs);">({{ c.coverage_pct }}%)</span>
+              <div style="flex: 1; max-width: 60px; height: 4px; background: var(--bg-surface-3); border-radius: 2px; overflow: hidden;">
+                <div style="width: {{ c.coverage_pct }}%; height: 100%; background: var(--accent);"></div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align: right;">
+            <div class="flex items-center justify-end gap-1">
+              <a href="{{ url_for('concept_detail', concept_id=c.id) }}" class="btn btn-ghost btn-sm" title="View concept details" style="padding: 4px 8px; font-size: var(--text-xs); color: var(--text-secondary);" onclick="event.stopPropagation();">
+                Detail ↗
+              </a>
+              <a href="{{ url_for('search_page', q=c.name) }}" class="btn btn-ghost btn-sm" title="Search across all sources" style="padding: 4px 8px; font-size: var(--text-xs);" onclick="event.stopPropagation();">
+                Search →
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="flex items-center justify-between mt-4 t-muted flex-wrap gap-2" style="font-size: var(--text-xs);">
+    <span>Showing {{ concepts|length }} detected concepts · Click any row to reveal observed connections</span>
+    <span>All scores calculated deterministically from local content</span>
+  </div>
+
+  {% else %}
+  <!-- Empty State -->
+  <div class="empty-state" style="padding: 64px 24px; text-align: center; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-lg);">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; color: var(--text-muted); margin: 0 auto 16px;">
+      <circle cx="12" cy="12" r="3.5"></circle>
+      <path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path>
+    </svg>
+    {% if search_query %}
+      <h3 class="t-h3 mb-2">No concepts matching "{{ search_query }}"</h3>
+      <p class="t-secondary mb-4" style="max-width: 420px; margin-left: auto; margin-right: auto; font-size: var(--text-sm);">
+        Try broadening your search term or view all concepts.
+      </p>
+      <a href="{{ url_for('concepts_page') }}" class="btn btn-secondary btn-sm">Clear Filter</a>
+    {% else %}
+      <h3 class="t-h3 mb-2">No Concepts Detected Yet</h3>
+      <p class="t-secondary mb-6" style="max-width: 480px; margin-left: auto; margin-right: auto; font-size: var(--text-sm);">
+        Concept Intelligence extracts single-word terms and multi-word phrases from your research materials. Click below to analyze your imported sources.
+      </p>
+      <button class="btn btn-primary" id="analyze-empty-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Run Concept Analysis
+      </button>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Status Toast Notification -->
+<div id="toast-notify" style="position: fixed; bottom: 24px; right: 24px; background: var(--bg-surface-3); border: 1px solid var(--accent); color: var(--text-primary); padding: 12px 20px; border-radius: var(--radius-md); font-size: var(--text-sm); display: none; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+  <span id="toast-text"></span>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function showToast(msg) {
+    const toast = document.getElementById('toast-notify');
+    const text = document.getElementById('toast-text');
+    if (!toast || !text) return;
+    text.textContent = msg;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 4000);
+  }
+
+  async function triggerAnalyze() {
+    const btn = document.getElementById('analyze-all-btn') || document.getElementById('analyze-empty-btn');
+    if (btn) btn.disabled = true;
+    showToast('Analyzing collection content for recurring concepts...');
+    try {
+      const resp = await fetch('{{ url_for("api_concepts_analyze_all") }}', { method: 'POST' });
+      const data = await resp.json();
+      if (data.status === 'ok') {
+        showToast(`Analysis complete: ${data.result.total_concepts} concepts identified.`);
+        setTimeout(() => { window.location.reload(); }, 1200);
+      } else {
+        showToast('Error during analysis: ' + (data.error || 'Unknown error'));
+        if (btn) btn.disabled = false;
+      }
+    } catch (err) {
+      showToast('Network error triggering concept analysis.');
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  const analyzeBtn = document.getElementById('analyze-all-btn');
+  if (analyzeBtn) analyzeBtn.addEventListener('click', triggerAnalyze);
+
+  const emptyBtn = document.getElementById('analyze-empty-btn');
+  if (emptyBtn) emptyBtn.addEventListener('click', triggerAnalyze);
+
+  const rebuildBtn = document.getElementById('rebuild-rels-btn');
+  if (rebuildBtn) {
+    rebuildBtn.addEventListener('click', async () => {
+      rebuildBtn.disabled = true;
+      showToast('Recalculating pairwise co-occurrences...');
+      try {
+        const resp = await fetch('{{ url_for("api_concepts_rebuild_relationships") }}', { method: 'POST' });
+        const data = await resp.json();
+        showToast(`Calculated ${data.relationships_count} concept relationships.`);
+        setTimeout(() => { window.location.reload(); }, 1200);
+      } catch (e) {
+        showToast('Error recalculating relationships.');
+        rebuildBtn.disabled = false;
+      }
+    });
+  }
+
+  // ── INTERACTIVE CONCEPT FOCUS MODE ──────────────────────────────────────────
+  (function initConceptFocusMode() {
+    const table = document.getElementById('concepts-data-table');
+    const focusBar = document.getElementById('concept-focus-bar');
+    const focusTitle = document.getElementById('focus-concept-name');
+    const focusStatus = document.getElementById('focus-connection-text');
+    const focusDossierLink = document.getElementById('focus-dossier-link');
+    const clearFocusBtn = document.getElementById('clear-focus-btn');
+    const rows = document.querySelectorAll('.concept-row');
+
+    if (!table || !focusBar || rows.length === 0) return;
+
+    let activeFocusId = null;
+    const conceptCache = new Map();
+    const pendingPromises = new Map();
+
+    async function fetchConceptDetail(conceptId) {
+      if (conceptCache.has(conceptId)) {
+        return conceptCache.get(conceptId);
+      }
+      if (pendingPromises.has(conceptId)) {
+        return pendingPromises.get(conceptId);
+      }
+
+      const p = (async () => {
+        try {
+          const resp = await fetch('/api/concepts/' + encodeURIComponent(conceptId));
+          if (!resp.ok) throw new Error('Network error loading concept ' + conceptId);
+          const data = await resp.json();
+          if (data.status === 'ok' && data.concept) {
+            conceptCache.set(conceptId, data.concept);
+            return data.concept;
+          }
+        } catch (err) {
+          console.warn('Concept focus lookup error:', err);
+        } finally {
+          pendingPromises.delete(conceptId);
+        }
+        return null;
+      })();
+
+      pendingPromises.set(conceptId, p);
+      return p;
+    }
+
+    function clearFocus() {
+      activeFocusId = null;
+      table.classList.remove('focus-mode-active');
+      focusBar.classList.add('hidden');
+
+      rows.forEach(r => {
+        r.classList.remove('is-focused-primary', 'is-related', 'is-unrelated', 'is-hover-related', 'is-hover-unrelated');
+        r.setAttribute('aria-pressed', 'false');
+        const pill = document.getElementById('rel-pill-' + r.dataset.conceptId);
+        if (pill) {
+          pill.style.display = 'none';
+          pill.textContent = '';
+        }
+      });
+    }
+
+    async function setFocus(conceptId) {
+      // Clicking the currently selected concept exits focus mode
+      if (activeFocusId === conceptId) {
+        clearFocus();
+        return;
+      }
+
+      activeFocusId = conceptId;
+      table.classList.add('focus-mode-active');
+      focusBar.classList.remove('hidden');
+
+      const targetRow = document.getElementById('concept-row-' + conceptId);
+      const displayName = targetRow ? (targetRow.dataset.conceptDisplay || targetRow.dataset.conceptName) : 'Concept';
+
+      focusTitle.textContent = displayName;
+      focusStatus.textContent = 'Observing connections...';
+      if (focusDossierLink) {
+        focusDossierLink.href = '/concepts/' + encodeURIComponent(conceptId);
+      }
+
+      // Instant visual feedback: mark target row as primary, others as unrelated
+      rows.forEach(r => {
+        const rid = r.dataset.conceptId;
+        r.classList.remove('is-focused-primary', 'is-related', 'is-unrelated', 'is-hover-related', 'is-hover-unrelated');
+        const pill = document.getElementById('rel-pill-' + rid);
+        if (pill) {
+          pill.style.display = 'none';
+          pill.textContent = '';
+        }
+
+        if (rid === conceptId) {
+          r.classList.add('is-focused-primary');
+          r.setAttribute('aria-pressed', 'true');
+        } else {
+          r.classList.add('is-unrelated');
+          r.setAttribute('aria-pressed', 'false');
+        }
+      });
+
+      // Load deterministic relationship data
+      const detail = await fetchConceptDetail(conceptId);
+
+      // Guard against race condition if user clicked another concept in the meantime
+      if (activeFocusId !== conceptId) return;
+
+      const relatedList = (detail && Array.isArray(detail.related)) ? detail.related : [];
+      const relatedMap = new Map();
+      relatedList.forEach(rel => {
+        if (rel && rel.id) relatedMap.set(rel.id, rel);
+      });
+
+      if (relatedMap.size > 0) {
+        const count = relatedMap.size;
+        focusStatus.textContent = `Showing ${count} observed connection${count === 1 ? '' : 's'} across sources`;
+      } else {
+        focusStatus.textContent = 'No observed connections yet in current sources';
+      }
+
+      // Apply relationship hierarchy
+      rows.forEach(r => {
+        const rid = r.dataset.conceptId;
+        if (rid === conceptId) {
+          r.classList.remove('is-unrelated', 'is-related');
+          r.classList.add('is-focused-primary');
+        } else if (relatedMap.has(rid)) {
+          const rel = relatedMap.get(rid);
+          r.classList.remove('is-unrelated');
+          r.classList.add('is-related');
+
+          const pill = document.getElementById('rel-pill-' + rid);
+          if (pill) {
+            const label = rel.strength_label || 'Co-occurs';
+            const srcCount = rel.shared_sources || 1;
+            pill.innerHTML = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="12" r="3"></circle>
+                <line x1="9" y1="12" x2="15" y2="12"></line>
+              </svg>
+              ${label} · ${srcCount} src
+            `;
+            pill.style.display = 'inline-flex';
+          }
+        } else {
+          r.classList.remove('is-related', 'is-focused-primary');
+          r.classList.add('is-unrelated');
+        }
+      });
+    }
+
+    // Row click and keyboard handlers
+    rows.forEach(r => {
+      const conceptId = r.dataset.conceptId;
+
+      r.addEventListener('click', (e) => {
+        // Let explicit action buttons navigate without triggering focus toggle
+        if (e.target.closest('a.btn')) return;
+
+        // If clicking the concept title link without modifier keys, enter focus mode
+        const titleLink = e.target.closest('.concept-name-link');
+        if (titleLink) {
+          if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+          e.preventDefault();
+        }
+
+        setFocus(conceptId);
+      });
+
+      r.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setFocus(conceptId);
+        }
+      });
+
+      // Hover preview (only active when no concept is locked into focus mode)
+      r.addEventListener('mouseenter', () => {
+        if (activeFocusId) return;
+
+        if (conceptCache.has(conceptId)) {
+          const detail = conceptCache.get(conceptId);
+          const relatedList = (detail && Array.isArray(detail.related)) ? detail.related : [];
+          const relatedIds = new Set(relatedList.map(item => item.id));
+
+          if (relatedIds.size > 0) {
+            rows.forEach(otherRow => {
+              const otherId = otherRow.dataset.conceptId;
+              if (otherId === conceptId) return;
+              if (relatedIds.has(otherId)) {
+                otherRow.classList.add('is-hover-related');
+              } else {
+                otherRow.classList.add('is-hover-unrelated');
+              }
+            });
+          }
+        }
+      });
+
+      r.addEventListener('mouseleave', () => {
+        if (activeFocusId) return;
+        rows.forEach(otherRow => {
+          otherRow.classList.remove('is-hover-related', 'is-hover-unrelated');
+        });
+      });
+    });
+
+    // Clear focus button
+    if (clearFocusBtn) {
+      clearFocusBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        clearFocus();
+      });
+    }
+
+    // Escape key to dismiss focus mode
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && activeFocusId) {
+        clearFocus();
+      }
+    });
+
+    // Quietly warm up relationship cache for top concepts during browser idle time
+    function warmCache() {
+      const topRows = Array.from(rows).slice(0, 15);
+      topRows.forEach((r, idx) => {
+        setTimeout(() => {
+          fetchConceptDetail(r.dataset.conceptId);
+        }, 150 + idx * 80);
+      });
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(warmCache, { timeout: 2000 });
+    } else {
+      setTimeout(warmCache, 500);
+    }
+  })();
+</script>
+{% endblock %}

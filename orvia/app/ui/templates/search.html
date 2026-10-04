@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="search-page">
+
+  <!-- ── 1. EXPLORE / SEARCH HEADER (Section 13) ────────────────────────────── -->
+  <section class="explore-hero">
+    <div class="explore-eyebrow">EXPLORE</div>
+    <h1 class="explore-title">Search across your research.</h1>
+  </section>
+
+  <!-- ── SEARCH INPUT FORM ─────────────────────────────────────────────────── -->
+  <section class="search-header">
+    <form class="search-form" action="/search" method="GET">
+      <div class="search-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          class="search-field"
+          type="text"
+          name="q"
+          value="{{ query or '' }}"
+          placeholder="Search your knowledge... (Ctrl K)"
+          autocomplete="off"
+          autofocus
+        >
+        {% if current_type and current_type != 'all' %}
+          <input type="hidden" name="type" value="{{ current_type }}">
+        {% endif %}
+        {% if sort_by and sort_by != 'relevance' %}
+          <input type="hidden" name="sort" value="{{ sort_by }}">
+        {% endif %}
+        <button type="submit" class="search-submit-btn">Search</button>
+      </div>
+    </form>
+
+    <!-- Contextual Toolbar: Filters + Sort (Section 15) -->
+    <div class="search-toolbar">
+      <div class="search-filters">
+        <a
+          class="search-filter-chip {% if current_type == 'all' or not current_type %}active{% endif %}"
+          href="/search?q={{ query|urlencode }}{% if sort_by and sort_by != 'relevance' %}&sort={{ sort_by }}{% endif %}"
+        >All Sources</a>
+        <a
+          class="search-filter-chip {% if current_type == 'txt' %}active{% endif %}"
+          href="/search?q={{ query|urlencode }}&type=txt{% if sort_by and sort_by != 'relevance' %}&sort={{ sort_by }}{% endif %}"
+        >TXT</a>
+        <a
+          class="search-filter-chip {% if current_type == 'csv' %}active{% endif %}"
+          href="/search?q={{ query|urlencode }}&type=csv{% if sort_by and sort_by != 'relevance' %}&sort={{ sort_by }}{% endif %}"
+        >CSV</a>
+        <a
+          class="search-filter-chip {% if current_type == 'json' %}active{% endif %}"
+          href="/search?q={{ query|urlencode }}&type=json{% if sort_by and sort_by != 'relevance' %}&sort={{ sort_by }}{% endif %}"
+        >JSON</a>
+      </div>
+
+      <div class="search-sort-group">
+        <span class="search-sort-label">Sort:</span>
+        <a
+          class="search-sort-btn {% if sort_by == 'relevance' or not sort_by %}active{% endif %}"
+          href="/search?q={{ query|urlencode }}{% if current_type and current_type != 'all' %}&type={{ current_type }}{% endif %}&sort=relevance"
+        >Relevance</a>
+        <a
+          class="search-sort-btn {% if sort_by == 'newest' %}active{% endif %}"
+          href="/search?q={{ query|urlencode }}{% if current_type and current_type != 'all' %}&type={{ current_type }}{% endif %}&sort=newest"
+        >Newest</a>
+        <a
+          class="search-sort-btn {% if sort_by == 'oldest' %}active{% endif %}"
+          href="/search?q={{ query|urlencode }}{% if current_type and current_type != 'all' %}&type={{ current_type }}{% endif %}&sort=oldest"
+        >Oldest</a>
+        <a
+          class="search-sort-btn {% if sort_by == 'largest' %}active{% endif %}"
+          href="/search?q={{ query|urlencode }}{% if current_type and current_type != 'all' %}&type={{ current_type }}{% endif %}&sort=largest"
+        >Largest</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 2. RESULTS META BAR (Section 16) ──────────────────────────────────── -->
+  {% if query and result_set %}
+  <div class="search-meta">
+    <span>Found <strong>{{ result_set.total_hits }}</strong> results for "<strong>{{ query }}</strong>"</span>
+    <span class="search-latency">in {{ result_set.duration_ms }} ms</span>
+  </div>
+  {% endif %}
+
+  <!-- ── 3. TERM EXPLORATION CARD (Section 22) ─────────────────────────────── -->
+  {% if query and result_set and result_set.term_exploration %}
+  <div class="term-exploration-panel">
+    <div class="term-exploration-badge">TERM EXPLORATION</div>
+    <div class="term-exploration-row">
+      <div class="term-exploration-main">
+        <span class="term-name">{{ result_set.term_exploration.term }}</span>
+        <span class="term-meta">
+          Found in <strong>{{ result_set.term_exploration.source_count }}</strong> sources · 
+          <strong>{{ result_set.term_exploration.total_occurrences }}</strong> occurrences
+        </span>
+      </div>
+      {% if result_set.term_exploration.related_terms %}
+      <div class="term-related-group">
+        <span class="term-related-label">Related terms (co-occurrence):</span>
+        <div class="term-related-chips">
+          {% for rel in result_set.term_exploration.related_terms %}
+          <a href="/search?q={{ rel.term|urlencode }}" class="term-related-chip" title="{{ rel.cooccurrences }} co-occurrences in collection">
+            {{ rel.term }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── 4. RESULT CARDS (Section 14) ──────────────────────────────────────── -->
+  {% if query and result_set and result_set.results %}
+  <div class="search-results-list">
+    {% for result in result_set.results %}
+    <div class="search-result-card">
+      <div class="search-result-header">
+        <span class="source-type-badge type-{{ result.file_type }}">{{ result.file_type|upper }}</span>
+        <a class="search-result-title" href="/sources/{{ result.source_id }}">{{ result.source_title }}</a>
+        <div class="search-relevance-indicator" title="{{ result.match_reason }}">
+          <span class="relevance-label">{{ result.relevance_label }}</span>
+          <span class="search-score-pill">BM25 {{ '%.2f'|format(result.score) }}</span>
+        </div>
+      </div>
+
+      {% if result.match_reason %}
+      <div class="search-match-reason">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <span>Why it matched: {{ result.match_reason }}</span>
+      </div>
+      {% endif %}
+
+      <div class="search-snippet">
+        {{ result.snippet|safe }}
+      </div>
+
+      <div class="search-result-footer">
+        <span class="search-source-ref">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          {{ result.source_title }}
+        </span>
+        <span>{{ result.word_count }} words</span>
+
+        {% if result.matched_terms %}
+        <div class="search-matched-terms">
+          {% for term in result.matched_terms %}
+          <span class="search-term-pill">{{ term }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if result.concepts %}
+        <div class="search-matched-terms" style="gap: 4px;">
+          {% for c in result.concepts %}
+          <a href="{{ url_for('concept_detail', concept_id=c.id) }}"
+             class="search-term-pill"
+             style="background: var(--bg-surface-3); border-color: var(--border-accent); color: var(--text-accent); text-decoration: none; font-size: 10px;"
+             title="Detected Concept · {{ c.occurrences }} occurrences">
+            ✦ {{ c.display }}
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if result.created_at %}
+        <span>{{ result.created_at }}</span>
+        {% endif %}
+
+        <div class="search-result-actions">
+          <a href="/sources/{{ result.source_id }}" class="search-action-btn" title="Open and read source">Open Source</a>
+          <a href="/investigations" class="search-action-btn search-action-secondary" title="Start research investigation">Investigate</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- ── 5. ZERO-RESULT INTELLIGENCE (Section 21) ─────────────────────────── -->
+  {% elif query %}
+  <div class="search-empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      <line x1="8" y1="11" x2="14" y2="11"></line>
+    </svg>
+    <div class="search-empty-title">0 results for "{{ query }}"</div>
+    <div class="search-empty-sub" style="margin-top: 4px; color: var(--text-secondary); font-weight: 500;">No results found for "{{ query }}". No direct matches found.</div>
+    <p class="search-empty-sub">Try searching for broader keywords, or search for a related concept.</p>
+
+    {% if result_set and result_set.zero_result_suggestion and result_set.zero_result_suggestion.suggestions %}
+    <div class="zero-suggestions-box">
+      <div class="zero-suggestions-title">Did you mean to explore:</div>
+      <div class="zero-suggestions-chips">
+        {% for s in result_set.zero_result_suggestion.suggestions %}
+        <a href="/search?q={{ s|urlencode }}" class="zero-suggestion-chip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <span>{{ s }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <ul class="search-suggestions">
+      <li>Try searching for broader keywords</li>
+      <li>Check for alternate terms or spelling</li>
+      <li>Use fewer search terms to expand results</li>
+    </ul>
+  </div>
+
+  <!-- ── 6. EMPTY RESEARCH WORKSPACE (Section 30) ─────────────────────────── -->
+  {% elif total_sources == 0 %}
+  <div class="search-empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+    </svg>
+    <div class="search-empty-title">Your research collection is empty.</div>
+    <div class="search-empty-sub">Search across your research workspace once sources are added. Add sources before searching your knowledge.</div>
+    <a href="/sources" class="search-submit-btn" style="margin-top: var(--sp-4); text-decoration: none; display: inline-block;">Add Source</a>
+  </div>
+
+  <!-- ── 7. INITIAL STATE WITH SEARCH HISTORY (Sections 18, 19, 29) ───────── -->
+  {% else %}
+  <div class="search-empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+    <div class="search-empty-title">Search across your research workspace.</div>
+    <div class="search-empty-sub">Search your research — find evidence, revisit sources, and uncover connections across your collection.</div>
+
+    {% if recent_searches %}
+    <div class="recent-searches-box">
+      <div class="recent-searches-header">
+        <span class="recent-searches-title">Recent Searches</span>
+        <button class="clear-history-btn" id="clear-search-history-btn" title="Clear all local search history">Clear History</button>
+      </div>
+      <div class="recent-chips">
+        {% for s in recent_searches %}
+        <a href="/search?q={{ s.query|urlencode }}" class="recent-search-chip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span>{{ s.query }}</span>
+          <span class="chip-count">({{ s.result_count }})</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if popular_searches %}
+    <div class="popular-searches-box">
+      <span class="popular-label">Frequent Topics:</span>
+      {% for p in popular_searches %}
+      <a href="/search?q={{ p.query|urlencode }}" class="popular-chip">{{ p.query }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

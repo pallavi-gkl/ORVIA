@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/investigation.css') }}">
+{% endblock %}
+{% block content %}
+
+<!-- Page Header -->
+<div class="inv-page-header">
+  <div>
+    <h1 class="inv-page-title">Research Investigations</h1>
+    <p class="inv-page-subtitle">Formulate questions, attach evidence, and track conceptual progress.</p>
+  </div>
+  <a href="{{ url_for('investigation_new') }}" class="btn btn-primary">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    New Investigation
+  </a>
+</div>
+
+<!-- Search -->
+<form class="inv-search-form" method="get" action="{{ url_for('investigations') }}">
+  <input class="inv-search-input" type="text" name="q" value="{{ search_q }}" placeholder="Search investigations…" autocomplete="off">
+  <input type="hidden" name="status" value="{{ status_filter }}">
+  <button class="btn btn-ghost btn-sm" type="submit">Search</button>
+  {% if search_q %}
+  <a href="{{ url_for('investigations') }}" class="btn btn-ghost btn-sm">Clear</a>
+  {% endif %}
+</form>
+
+<!-- Status Filter Tabs -->
+<div class="inv-filter-bar">
+  <a class="inv-filter-tab {% if status_filter == 'all' %}active{% endif %}"
+     href="{{ url_for('investigations', status='all', q=search_q) }}">
+    All <span class="inv-filter-count">{{ counts.total }}</span>
+  </a>
+  <a class="inv-filter-tab {% if status_filter == 'active' %}active{% endif %}"
+     href="{{ url_for('investigations', status='active', q=search_q) }}">
+    Active <span class="inv-filter-count">{{ counts.active }}</span>
+  </a>
+  <a class="inv-filter-tab {% if status_filter == 'paused' %}active{% endif %}"
+     href="{{ url_for('investigations', status='paused', q=search_q) }}">
+    Paused <span class="inv-filter-count">{{ counts.paused }}</span>
+  </a>
+  <a class="inv-filter-tab {% if status_filter == 'completed' %}active{% endif %}"
+     href="{{ url_for('investigations', status='completed', q=search_q) }}">
+    Completed <span class="inv-filter-count">{{ counts.completed }}</span>
+  </a>
+  <a class="inv-filter-tab {% if status_filter == 'archived' %}active{% endif %}"
+     href="{{ url_for('investigations', status='archived', q=search_q) }}">
+    Archived <span class="inv-filter-count">{{ counts.archived }}</span>
+  </a>
+</div>
+
+<!-- Investigations List -->
+{% set all_displayed = active_investigations + paused_investigations + completed_investigations + archived_investigations %}
+
+{% if all_displayed %}
+
+  {% if active_investigations %}
+  <div class="inv-list-section">
+    <div class="inv-list-section-title">Active{% if status_filter == 'all' %} &amp; Draft{% endif %}</div>
+    {% for inv in active_investigations %}
+    {% set s = stats_map.get(inv.id, {}) %}
+    <a class="inv-list-row" href="{{ url_for('investigation_detail', inv_id=inv.id) }}">
+      <span class="inv-row-title">{{ inv.title }}</span>
+      <span class="inv-row-question">{{ inv.research_question[:110] }}{% if inv.research_question|length > 110 %}…{% endif %}</span>
+      <span class="inv-row-meta">
+        <span class="inv-row-stats">
+          <span title="Sources">📄 {{ s.get('source_count', 0) }}</span>
+          <span title="Evidence">🔍 {{ s.get('evidence_count', 0) }}</span>
+          <span title="Open questions">❓ {{ s.get('open_questions_count', 0) }}</span>
+        </span>
+        <span class="inv-status-badge status-{{ inv.status }}">{{ inv.status }}</span>
+        <span class="inv-row-date">{{ inv.updated_at|datefmt }}</span>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if paused_investigations %}
+  <div class="inv-list-section">
+    <div class="inv-list-section-title">Paused</div>
+    {% for inv in paused_investigations %}
+    {% set s = stats_map.get(inv.id, {}) %}
+    <a class="inv-list-row" href="{{ url_for('investigation_detail', inv_id=inv.id) }}">
+      <span class="inv-row-title">{{ inv.title }}</span>
+      <span class="inv-row-question">{{ inv.research_question[:110] }}{% if inv.research_question|length > 110 %}…{% endif %}</span>
+      <span class="inv-row-meta">
+        <span class="inv-row-stats">
+          <span>📄 {{ s.get('source_count', 0) }}</span>
+          <span>🔍 {{ s.get('evidence_count', 0) }}</span>
+        </span>
+        <span class="inv-status-badge status-paused">paused</span>
+        <span class="inv-row-date">{{ inv.updated_at|datefmt }}</span>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if completed_investigations %}
+  <div class="inv-list-section">
+    <div class="inv-list-section-title">Completed</div>
+    {% for inv in completed_investigations %}
+    {% set s = stats_map.get(inv.id, {}) %}
+    <a class="inv-list-row" href="{{ url_for('investigation_detail', inv_id=inv.id) }}">
+      <span class="inv-row-title">{{ inv.title }}</span>
+      <span class="inv-row-question">{{ inv.research_question[:110] }}{% if inv.research_question|length > 110 %}…{% endif %}</span>
+      <span class="inv-row-meta">
+        <span class="inv-row-stats">
+          <span>📄 {{ s.get('source_count', 0) }}</span>
+          <span>🔍 {{ s.get('evidence_count', 0) }}</span>
+          <span>📌 {{ s.get('findings_count', 0) }} findings</span>
+        </span>
+        <span class="inv-status-badge status-completed">completed</span>
+        <span class="inv-row-date">{{ inv.updated_at|datefmt }}</span>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if archived_investigations %}
+  <div class="inv-list-section">
+    <div class="inv-list-section-title">Archived</div>
+    {% for inv in archived_investigations %}
+    <a class="inv-list-row" href="{{ url_for('investigation_detail', inv_id=inv.id) }}">
+      <span class="inv-row-title">{{ inv.title }}</span>
+      <span class="inv-row-question">{{ inv.research_question[:110] }}{% if inv.research_question|length > 110 %}…{% endif %}</span>
+      <span class="inv-row-meta">
+        <span class="inv-status-badge status-archived">archived</span>
+        <span class="inv-row-date">{{ inv.updated_at|datefmt }}</span>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+{% else %}
+  <!-- Empty state — required by test: must contain "Start with a question you're curious about." -->
+  <div class="empty-state empty-state-bordered" style="padding: var(--sp-16) var(--sp-8);">
+    <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="11" cy="11" r="7"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      <line x1="11" y1="8" x2="11" y2="14"></line>
+      <line x1="8" y1="11" x2="14" y2="11"></line>
+    </svg>
+    <div class="empty-state-title">Start with a question you're curious about.</div>
+    <div class="empty-state-body">
+      Investigations are the focal points of ORVIA. They structure your enquiry,
+      gather relevant evidence from across disparate documents, and track truth claims over time.
+    </div>
+    <a href="{{ url_for('investigation_new') }}" class="btn btn-primary" style="margin-top:1.25rem;display:inline-block;">
+      Start Investigation
+    </a>
+  </div>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/investigation.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-6">
+  <h2 class="t-h2">Workspace Settings</h2>
+  <p class="t-secondary mt-2">Manage local SQLite database configuration, search index health, data integrity diagnostics, keyboard shortcuts, and UI preferences.</p>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:1.5rem;">
+
+  <!-- LEFT COLUMN -->
+  <div>
+
+    <!-- Local SQLite Engine -->
+    <div class="surface p-5 mb-5" style="border-radius:var(--radius-md);">
+      <div class="t-h3 mb-2">Local SQLite Engine</div>
+      <p class="t-secondary mb-4" style="font-size:0.85rem; line-height:1.5;">
+        ORVIA operates with complete local privacy. All indexed sources, concepts, relationships, investigations, evidence, and reports are stored within a local SQLite database with write-ahead logging (WAL).
+      </p>
+      <div class="form-group mb-4">
+        <label class="form-label">Database File Location</label>
+        <input type="text" class="form-input t-mono" value="{{ db_path }}" readonly style="font-size:0.78rem;">
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="badge badge-success">WAL JOURNAL MODE ACTIVE</span>
+        <span class="badge badge-default">FOREIGN KEYS ENFORCED</span>
+      </div>
+    </div>
+
+    <!-- Search Index Health -->
+    <div class="surface p-5 mb-5" style="border-radius:var(--radius-md);">
+      <div class="t-h3 mb-2">Search Index Health</div>
+      <p class="t-secondary mb-3" style="font-size:0.85rem;">The deterministic full-text search index powers all search and discovery queries across your research library.</p>
+      <div id="index-health-display">
+        <div class="t-muted" style="font-size:0.82rem;">Checking index status…</div>
+      </div>
+      <div style="margin-top:1rem; display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" id="rebuild-index-btn" onclick="rebuildIndex(this)">
+          Rebuild Index
+        </button>
+        <span class="t-muted" style="font-size:0.75rem;" id="rebuild-status"></span>
+      </div>
+    </div>
+
+    <!-- Data Integrity -->
+    <div class="surface p-5 mb-5" style="border-radius:var(--radius-md);">
+      <div class="t-h3 mb-2">Data Integrity Diagnostics</div>
+      <p class="t-secondary mb-3" style="font-size:0.85rem;">Deterministic structural checks across all ORVIA entity tables and relationship graphs.</p>
+      <div id="data-integrity-display">
+        <div class="t-muted" style="font-size:0.82rem;">Running diagnostic checks…</div>
+      </div>
+    </div>
+
+    <!-- Sample Data Mode -->
+    <div class="surface p-5 mb-5" style="border-radius:var(--radius-md);">
+      <div class="t-h3 mb-2">Sample Data Mode</div>
+      <p class="t-secondary mb-3" style="font-size:0.85rem; line-height:1.5;">Load a clearly labeled demo dataset to explore ORVIA's capabilities. Demo sources are always tagged with <code>[DEMO]</code> and can be cleared at any time without affecting your own work.</p>
+      <div class="flex gap-3 flex-wrap">
+        <button class="btn btn-secondary btn-sm" onclick="loadDemoFromSettings(this)">Load Demo Dataset</button>
+        <button class="btn btn-secondary btn-sm" onclick="clearDemoFromSettings(this)">Clear Demo Data</button>
+      </div>
+      <p id="demo-status" class="t-muted" style="font-size:0.78rem; margin-top:0.75rem;"></p>
+    </div>
+
+    <!-- Database Backup -->
+    <div class="surface p-5 mb-5" style="border-radius:var(--radius-md);">
+      <div class="t-h3 mb-2">Database Backup</div>
+      <p class="t-secondary mb-3" style="font-size:0.85rem; line-height:1.5;">
+        Create a point-in-time snapshot of your full ORVIA workspace — all sources, concepts, investigations, evidence, reports, and analytics. Backups are stored locally in <code>data/backups/</code> and never leave your machine.
+      </p>
+      <div class="flex gap-3 flex-wrap mb-4">
+        <button class="btn btn-secondary btn-sm" id="create-backup-btn" onclick="createBackup(this)">Create Backup Now</button>
+        <button class="btn btn-secondary btn-sm" onclick="loadBackupList()">Refresh List</button>
+      </div>
+      <div id="backup-status" class="t-muted" style="font-size:0.78rem; margin-bottom:0.75rem;"></div>
+      <div id="backup-list-container">
+        <div class="t-muted" style="font-size:0.8rem;">Loading backup history…</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div>
+
+    <!-- Keyboard Shortcuts -->
+    <div class="surface p-5 mb-5" style="border-radius:var(--radius-md);">
+      <div class="t-h3 mb-3">Keyboard Shortcuts</div>
+      <table style="width:100%; border-collapse:collapse;">
+        <tbody>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+            <td style="padding:0.6rem 0; font-size:0.85rem; color:#e2e0db;"><kbd>Ctrl K</kbd></td>
+            <td style="padding:0.6rem 0 0.6rem 1rem; font-size:0.82rem; color:var(--text-secondary,#b2afa8);">Open Command Palette / Universal Search</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+            <td style="padding:0.6rem 0; font-size:0.85rem; color:#e2e0db;"><kbd>/</kbd></td>
+            <td style="padding:0.6rem 0 0.6rem 1rem; font-size:0.82rem; color:var(--text-secondary,#b2afa8);">Open Command Palette (when not in text input)</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+            <td style="padding:0.6rem 0; font-size:0.85rem; color:#e2e0db;"><kbd>Esc</kbd></td>
+            <td style="padding:0.6rem 0 0.6rem 1rem; font-size:0.82rem; color:var(--text-secondary,#b2afa8);">Close Command Palette or active modal</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+            <td style="padding:0.6rem 0; font-size:0.85rem; color:#e2e0db;"><kbd>↑</kbd> <kbd>↓</kbd></td>
+            <td style="padding:0.6rem 0 0.6rem 1rem; font-size:0.82rem; color:var(--text-secondary,#b2afa8);">Navigate search results in Command Palette</td>
+          </tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+            <td style="padding:0.6rem 0; font-size:0.85rem; color:#e2e0db;"><kbd>Enter</kbd></td>
+            <td style="padding:0.6rem 0 0.6rem 1rem; font-size:0.82rem; color:var(--text-secondary,#b2afa8);">Open selected search result</td>
+          </tr>
+          <tr>
+            <td style="padding:0.6rem 0; font-size:0.85rem; color:#e2e0db;"><kbd>Tab</kbd></td>
+            <td style="padding:0.6rem 0 0.6rem 1rem; font-size:0.82rem; color:var(--text-secondary,#b2afa8);">Navigate fields and focusable elements</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- About ORVIA -->
+    <div class="surface p-5 mb-5" style="border-radius:var(--radius-md);">
+      <div class="t-label mb-2">Workspace Environment</div>
+      <div class="t-h3 mb-4">ORVIA v{{ app_version }}</div>
+      <div class="flex flex-col gap-3 border-t border-subtle pt-3" style="font-size:0.82rem;">
+        <div class="flex justify-between">
+          <span class="t-muted">Architecture:</span>
+          <span class="t-mono t-secondary">Python 3.12 · Flask · SQLite3</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="t-muted">Design System:</span>
+          <span class="t-mono t-secondary">Graphite / Acid-Lime v1.0</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="t-muted">Persistence:</span>
+          <span class="t-mono t-secondary">Local SQLite (WAL mode)</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="t-muted">Search Engine:</span>
+          <span class="t-mono t-secondary">Deterministic BM25 + Positional Index</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="t-muted">AI / LLM APIs:</span>
+          <span class="t-mono t-accent">None (local deterministic analysis only)</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="t-muted">Telemetry:</span>
+          <span class="t-mono t-accent">Zero External Tracking</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual Design Tokens -->
+    <div class="surface p-5" style="border-radius:var(--radius-md);">
+      <div class="t-h3 mb-2">Visual Design System</div>
+      <p class="t-secondary mb-4" style="font-size:0.85rem;">Dark graphite foundation with high-contrast acid-lime accent. Clean, editorial, and distraction-free.</p>
+      <div class="flex items-center gap-3">
+        <div style="width:28px; height:28px; background:#0b0c0c; border:1px solid rgba(255,255,255,0.1); border-radius:4px;" title="Base: #0b0c0c"></div>
+        <div style="width:28px; height:28px; background:#131415; border:1px solid rgba(255,255,255,0.1); border-radius:4px;" title="Surface: #131415"></div>
+        <div style="width:28px; height:28px; background:#191b1c; border:1px solid rgba(255,255,255,0.1); border-radius:4px;" title="Surface 2: #191b1c"></div>
+        <div style="width:28px; height:28px; background:#b5c422; border:1px solid rgba(255,255,255,0.1); border-radius:4px;" title="Accent Lime: #b5c422"></div>
+        <div style="width:28px; height:28px; background:#e2e0db; border:1px solid rgba(255,255,255,0.1); border-radius:4px;" title="Warm Off-White: #e2e0db"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function loadIndexHealth() {
+  fetch('/api/index-health')
+    .then(r => r.json())
+    .then(data => {
+      const h = data.health;
+      const statusColor = h.status === 'Healthy' ? '#b5c422' : h.status === 'Needs Rebuild' ? '#c44' : '#8b8984';
+      document.getElementById('index-health-display').innerHTML = `
+        <div class="flex items-center gap-2 mb-3">
+          <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${statusColor};"></span>
+          <span class="t-primary" style="font-size:0.9rem;font-weight:500;">${escHtml(h.status)}</span>
+        </div>
+        <div class="flex flex-col gap-2" style="font-size:0.82rem;">
+          <div class="flex justify-between"><span class="t-muted">Total sources:</span><span class="t-secondary">${h.total_sources}</span></div>
+          <div class="flex justify-between"><span class="t-muted">Indexed sources:</span><span class="t-secondary">${h.indexed_sources}</span></div>
+          <div class="flex justify-between"><span class="t-muted">Indexed terms:</span><span class="t-secondary">${h.indexed_terms}</span></div>
+          ${h.last_updated ? `<div class="flex justify-between"><span class="t-muted">Last updated:</span><span class="t-secondary">${new Date(h.last_updated).toLocaleString()}</span></div>` : ''}
+        </div>
+        <p class="t-muted mt-3 mb-0" style="font-size:0.75rem;">${escHtml(h.explanation)}</p>
+      `;
+    })
+    .catch(() => {
+      document.getElementById('index-health-display').innerHTML = '<p class="t-muted" style="font-size:0.8rem;">Could not load index health.</p>';
+    });
+}
+
+function rebuildIndex(btn) {
+  btn.disabled = true;
+  const status = document.getElementById('rebuild-status');
+  status.textContent = 'Rebuilding…';
+  fetch('/api/index-rebuild', {method: 'POST'})
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      if (data.status === 'ok') {
+        status.textContent = data.message || 'Index rebuilt.';
+        loadIndexHealth();
+      } else {
+        status.textContent = 'Error: ' + (data.error || 'unknown');
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      status.textContent = 'Rebuild failed.';
+    });
+}
+
+function loadDataIntegrity() {
+  fetch('/api/data-integrity')
+    .then(r => r.json())
+    .then(data => {
+      const r = data.report;
+      const statusColor = r.healthy ? '#b5c422' : '#c44';
+      const statusText = r.healthy ? 'All checks passed' : `${r.issues_count} issue(s) detected`;
+      let html = `<div class="flex items-center gap-2 mb-3">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${statusColor};"></span>
+        <span class="t-primary" style="font-size:0.9rem;font-weight:500;">${escHtml(statusText)}</span>
+      </div>`;
+      if (r.issues && r.issues.length > 0) {
+        html += '<div style="font-size:0.8rem;">' + r.issues.map(i => `<div style="color:#d47070;padding:0.25rem 0;">⚠ ${escHtml(i)}</div>`).join('') + '</div>';
+      }
+      if (r.warnings && r.warnings.length > 0) {
+        html += '<div style="font-size:0.8rem; margin-top:0.5rem;">' + r.warnings.map(w => `<div style="color:#c87c22;padding:0.25rem 0;">⚠ ${escHtml(w)}</div>`).join('') + '</div>';
+      }
+      if (r.healthy && (!r.warnings || r.warnings.length === 0)) {
+        html += `<p class="t-muted mb-0" style="font-size:0.75rem; margin-top:0.5rem;">${r.total_checks} integrity check(s) passed. No broken references detected.</p>`;
+      }
+      document.getElementById('data-integrity-display').innerHTML = html;
+    })
+    .catch(() => {
+      document.getElementById('data-integrity-display').innerHTML = '<p class="t-muted" style="font-size:0.8rem;">Could not load integrity report.</p>';
+    });
+}
+
+function loadDemoFromSettings(btn) {
+  btn.disabled = true;
+  const status = document.getElementById('demo-status');
+  status.textContent = 'Loading demo data…';
+  fetch('/api/demo/load', {method: 'POST'})
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      if (data.status === 'ok') {
+        status.textContent = data.message || 'Demo data loaded.';
+      } else {
+        status.textContent = 'Error: ' + (data.error || 'unknown');
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      status.textContent = 'Failed to load demo data.';
+    });
+}
+
+function clearDemoFromSettings(btn) {
+  btn.disabled = true;
+  const status = document.getElementById('demo-status');
+  status.textContent = 'Clearing demo data…';
+  fetch('/api/demo/clear', {method: 'POST'})
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      status.textContent = data.status === 'ok' ? 'Demo data cleared.' : 'Could not clear demo data.';
+    })
+    .catch(() => {
+      btn.disabled = false;
+      status.textContent = 'Failed to clear demo data.';
+    });
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+
+function createBackup(btn) {
+  btn.disabled = true;
+  const status = document.getElementById('backup-status');
+  status.textContent = 'Creating backup…';
+  fetch('/api/backup/create', {method: 'POST'})
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      if (data.status === 'ok') {
+        status.style.color = '#9ab568';
+        status.textContent = data.message || 'Backup created.';
+        loadBackupList();
+      } else {
+        status.style.color = '#d47070';
+        status.textContent = 'Error: ' + (data.error || 'Backup failed.');
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      status.style.color = '#d47070';
+      status.textContent = 'Backup request failed.';
+    });
+}
+
+function loadBackupList() {
+  const container = document.getElementById('backup-list-container');
+  fetch('/api/backup/list')
+    .then(r => r.json())
+    .then(data => {
+      if (!data.backups || data.backups.length === 0) {
+        container.innerHTML = '<p class="t-muted" style="font-size:0.8rem;">No backups found. Create your first backup above.</p>';
+        return;
+      }
+      let html = '<div style="display:flex; flex-direction:column; gap:0.5rem;">';
+      data.backups.forEach(b => {
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0.75rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:3px; font-size:0.8rem;">
+          <span class="t-mono t-secondary" style="font-size:0.75rem;">${escHtml(b.filename)}</span>
+          <span class="t-muted">${escHtml(b.size_display || '')} &nbsp;·&nbsp; ${escHtml(b.created_at || '')}</span>
+        </div>`;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    })
+    .catch(() => {
+      container.innerHTML = '<p class="t-muted" style="font-size:0.8rem;">Could not load backup list.</p>';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadIndexHealth();
+  loadDataIntegrity();
+  loadBackupList();
+});
+</script>
+{% endblock %}

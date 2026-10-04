@@ -1,0 +1,584 @@
+/* ==========================================================================
+   ORVIA — Phase 9: Research Analytics & Pattern Intelligence Stylesheet
+   Dark graphite aesthetic, editorial typography, restrained acid-lime accent
+   ========================================================================== */
+
+/* ── LAYOUT & HEADER ─────────────────────────────────────────────────────── */
+.analytics-container {
+  max-width: 1400px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 4rem;
+}
+
+.analytics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 1.5rem;
+}
+
+.analytics-title-group h1 {
+  font-size: 1.85rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--text-primary, #e2e0db);
+  margin: 0 0 0.4rem 0;
+}
+
+.analytics-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #b2afa8);
+  margin: 0;
+}
+
+/* Time range pills */
+.time-filter-group {
+  display: inline-flex;
+  background: var(--bg-surface, #131415);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.time-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface-2, #191b1c);
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.085));
+  color: var(--text-secondary, #b2afa8);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-md, 5px);
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.time-filter-btn:hover {
+  color: var(--text-primary, #e2e0db);
+  background: var(--bg-surface-3, #1f2122);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+.time-filter-btn.active {
+  background: rgba(181, 196, 34, 0.12);
+  border-color: var(--accent, #b5c422);
+  color: var(--text-primary, #e6e4df);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(181, 196, 34, 0.20);
+}
+
+.time-filter-btn.active:hover {
+  background: rgba(181, 196, 34, 0.16);
+  border-color: var(--accent, #b5c422);
+}
+
+.time-filter-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent, #b5c422);
+  box-shadow: 0 0 0 2px rgba(181, 196, 34, 0.35);
+}
+
+/* ── NAVIGATION TABS (RESPONSIVE HORIZONTAL SCROLL) ───────────────────────── */
+.analytics-nav-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-bottom: 2rem;
+}
+
+.analytics-nav {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  padding-top: 2px;
+  padding-bottom: 8px;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+/* Subtle, polished custom scrollbar for Webkit/Blink */
+.analytics-nav::-webkit-scrollbar {
+  height: 4px;
+}
+
+.analytics-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.analytics-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+.analytics-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(181, 196, 34, 0.4);
+}
+
+/* Trailing spacer ensures final tab ("Research Comparisons") has complete breathing room */
+.analytics-nav::after {
+  content: '';
+  display: block;
+  width: 1.5rem;
+  height: 1px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.analytics-nav-tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--text-secondary, #b2afa8);
+  background: var(--bg-surface-2, #191b1c);
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.085));
+  border-radius: var(--radius-md, 5px);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.analytics-nav-tab:hover {
+  color: var(--text-primary, #e2e0db);
+  background: var(--bg-surface-3, #1f2122);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+.analytics-nav-tab.active {
+  background: rgba(181, 196, 34, 0.12);
+  border-color: var(--accent, #b5c422);
+  color: var(--text-primary, #e6e4df);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(181, 196, 34, 0.20);
+}
+
+.analytics-nav-tab.active:hover {
+  background: rgba(181, 196, 34, 0.16);
+  border-color: var(--accent, #b5c422);
+}
+
+.analytics-nav-tab:focus-visible {
+  outline: none;
+  border-color: var(--accent, #b5c422);
+  box-shadow: 0 0 0 2px rgba(181, 196, 34, 0.35);
+}
+
+.analytics-tab-panel {
+  display: none;
+}
+
+.analytics-tab-panel.active {
+  display: block;
+}
+
+/* ── SNAPSHOT & DENSITY MATRIX ───────────────────────────────────────────── */
+.snapshot-section {
+  margin-bottom: 2.5rem;
+}
+
+.section-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-secondary, #b2afa8);
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.snapshot-card {
+  background: var(--bg-surface, #131415);
+  padding: 1.25rem 1.5rem;
+}
+
+.snapshot-val {
+  font-size: 2rem;
+  font-weight: 300;
+  color: var(--text-primary, #e2e0db);
+  line-height: 1;
+  margin-bottom: 0.35rem;
+}
+
+.snapshot-key {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #b2afa8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.density-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.density-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 0.85rem 1rem;
+}
+
+.density-val {
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--accent, #b5c422);
+  margin-bottom: 0.2rem;
+}
+
+.density-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary, #b2afa8);
+  line-height: 1.3;
+}
+
+/* ── PATTERN INSIGHT CARDS ───────────────────────────────────────────────── */
+.patterns-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.pattern-card {
+  background: var(--bg-surface, #131415);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 3px solid var(--accent, #b5c422);
+  border-radius: 4px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.pattern-type-tag {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary, #b2afa8);
+  margin-bottom: 0.4rem;
+}
+
+.pattern-title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary, #e2e0db);
+  margin-bottom: 0.5rem;
+  line-height: 1.35;
+}
+
+.pattern-desc {
+  font-size: 0.84rem;
+  color: #c2c0bb;
+  line-height: 1.45;
+  margin-bottom: 0.85rem;
+}
+
+.pattern-calc-box {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.74rem;
+  color: var(--text-secondary, #b2afa8);
+  margin-bottom: 0.85rem;
+}
+
+.pattern-calc-box strong {
+  color: var(--text-primary, #e2e0db);
+}
+
+.pattern-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: var(--text-secondary, #b2afa8);
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.pattern-link {
+  color: var(--accent, #b5c422);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.pattern-link:hover {
+  text-decoration: underline;
+}
+
+/* ── DATA TABLES ─────────────────────────────────────────────────────────── */
+.table-container {
+  background: var(--bg-surface, #131415);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow-x: auto;
+  margin-bottom: 2.5rem;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.analytics-table th {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-secondary, #b2afa8);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.analytics-table td {
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-primary, #e2e0db);
+}
+
+.analytics-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.num-cell {
+  font-variant-numeric: tabular-nums;
+  font-family: monospace, monospace;
+}
+
+/* Trend Badges */
+.trend-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.trend-badge.trend-Growing {
+  background: rgba(181, 196, 34, 0.15);
+  color: var(--accent, #b5c422);
+}
+
+.trend-badge.trend-Declining {
+  background: rgba(220, 80, 80, 0.15);
+  color: #e07070;
+}
+
+.trend-badge.trend-Stable {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary, #b2afa8);
+}
+
+.trend-badge.trend-Recently-Detected {
+  background: rgba(140, 190, 255, 0.15);
+  color: #90b8e8;
+}
+
+.trend-badge.trend-Insufficient-History {
+  background: transparent;
+  color: var(--text-secondary, #b2afa8);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+/* ── COMPARISON WORKBENCH ────────────────────────────────────────────────── */
+.comparator-workbench {
+  background: var(--bg-surface, #131415);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.comparator-controls {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.select-control {
+  background: var(--bg-base, #0b0c0c);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #e2e0db);
+  padding: 0.55rem 0.85rem;
+  border-radius: 4px;
+  font-size: 0.84rem;
+  width: 100%;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.select-control:focus {
+  outline: none;
+  border-color: rgba(181, 196, 34, 0.45);
+  box-shadow: 0 0 0 1px rgba(181, 196, 34, 0.22),
+              0 0 0 3px rgba(181, 196, 34, 0.07);
+  background: var(--bg-surface-2, #191b1c);
+}
+
+.comparator-vs {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #b2afa8);
+  padding-bottom: 0.55rem;
+  font-weight: 500;
+}
+
+.comparison-result-card {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 1.25rem;
+}
+
+.overlap-score-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.overlap-score-number {
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: var(--accent, #b5c422);
+  line-height: 1;
+}
+
+.overlap-score-caption {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #b2afa8);
+}
+
+.concept-chip-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.concept-chip-sm {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.74rem;
+  color: var(--text-primary, #e2e0db);
+}
+
+.concept-chip-sm.shared {
+  background: rgba(181, 196, 34, 0.1);
+  border-color: rgba(181, 196, 34, 0.25);
+  color: var(--accent, #b5c422);
+}
+
+/* ── CHARTS & TIMELINES ──────────────────────────────────────────────────── */
+.chart-box {
+  background: var(--bg-surface, #131415);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.svg-chart {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+.svg-bar {
+  fill: rgba(181, 196, 34, 0.35);
+  transition: fill 0.15s ease;
+}
+
+.svg-bar:hover {
+  fill: var(--accent, #b5c422);
+}
+
+.svg-axis {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+}
+
+.svg-axis-label {
+  fill: var(--text-secondary, #b2afa8);
+  font-size: 10px;
+  font-family: sans-serif;
+}
+
+/* ── RESPONSIVE DESIGN ───────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .snapshot-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .density-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .patterns-grid {
+    grid-template-columns: 1fr;
+  }
+  .comparator-controls {
+    grid-template-columns: 1fr;
+  }
+  .comparator-vs {
+    text-align: center;
+    padding: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .analytics-container {
+    padding: 1rem;
+  }
+  .snapshot-grid {
+    grid-template-columns: 1fr;
+  }
+  .density-row {
+    grid-template-columns: 1fr;
+  }
+}

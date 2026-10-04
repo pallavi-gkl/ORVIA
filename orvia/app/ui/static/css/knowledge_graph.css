@@ -1,0 +1,389 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ORVIA KNOWLEDGE GRAPH STYLES
+   Phase 7 — Interactive Knowledge Graph
+   Adheres strictly to the ORVIA dark research design system:
+   Base: #0b0c0c / #131415, Text: #e2e0db, Muted: #8b8984, Accent: #b5c422
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.graph-page-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+  min-height: 600px;
+}
+
+/* ── TOOLBAR & CONTROLS ─────────────────────────────────────────────────── */
+.graph-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  flex-wrap: wrap;
+}
+
+.graph-mode-pills {
+  display: flex;
+  align-items: center;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.graph-mode-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-family: var(--font-sans);
+  padding: 4px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.graph-mode-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-3);
+}
+
+.graph-mode-btn.active {
+  background: var(--bg-surface-3);
+  color: var(--accent);
+  font-weight: 500;
+  box-shadow: inset 0 0 0 1px rgba(181, 196, 34, 0.30);
+}
+
+.graph-mode-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(181, 196, 34, 0.35),
+              0 0 0 3px rgba(181, 196, 34, 0.10);
+}
+
+.graph-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 260px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  height: 32px;
+}
+
+.graph-search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+  width: 100%;
+}
+
+.graph-search-dropdown {
+  position: absolute;
+  top: 36px;
+  left: 0;
+  right: 0;
+  background: var(--bg-surface-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.graph-search-item {
+  padding: 8px 12px;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.graph-search-item:hover {
+  background: var(--bg-surface-2);
+  color: var(--accent);
+}
+
+/* ── MAIN WORKSPACE: CANVAS + DETAIL PANEL ───────────────────────────────── */
+.graph-workspace {
+  display: flex;
+  flex: 1;
+  border: 1px solid var(--border-default);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-base);
+}
+
+.graph-canvas-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-base);
+  cursor: grab;
+}
+
+.graph-canvas-container:active {
+  cursor: grabbing;
+}
+
+/* Subtle dot-grid texture */
+.graph-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+}
+
+.graph-dot-grid {
+  fill: rgba(255, 255, 255, 0.035);
+}
+
+/* Canvas overlay controls */
+.graph-viewport-controls {
+  position: absolute;
+  bottom: var(--sp-4);
+  left: var(--sp-4);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.graph-ctrl-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.graph-ctrl-btn:hover {
+  background: var(--bg-surface-2);
+  color: var(--accent);
+}
+
+/* Scope badge */
+.graph-scope-indicator {
+  position: absolute;
+  top: var(--sp-3);
+  left: var(--sp-4);
+  background: rgba(19, 20, 21, 0.85);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(4px);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ── GRAPH VISUAL ELEMENTS (NODES & EDGES) ──────────────────────────────── */
+.graph-edge {
+  stroke: rgba(255, 255, 255, 0.15);
+  transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+  cursor: pointer;
+}
+
+.graph-edge:hover {
+  stroke: var(--accent);
+  stroke-width: 2.5px !important;
+}
+
+.graph-edge.selected {
+  stroke: var(--accent) !important;
+  stroke-width: 3px !important;
+}
+
+.graph-edge.dimmed {
+  opacity: 0.08 !important;
+}
+
+/* Node groups */
+.graph-node {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.graph-node.dimmed {
+  opacity: 0.15;
+}
+
+.graph-node-circle {
+  transition: transform 0.15s ease, stroke 0.15s ease, fill 0.15s ease;
+}
+
+/* Concept Node: subtle acid-lime accent treatment */
+.graph-node.concept .graph-node-circle {
+  fill: #191b1c;
+  stroke: var(--accent);
+  stroke-width: 1.5px;
+}
+
+.graph-node.concept:hover .graph-node-circle {
+  fill: #222615;
+  stroke: var(--accent);
+  stroke-width: 2.5px;
+}
+
+.graph-node.concept.selected .graph-node-circle {
+  fill: #272c14;
+  stroke: #d0e025;
+  stroke-width: 3px;
+}
+
+/* Source Node: neutral stone-gray */
+.graph-node.source .graph-node-circle {
+  fill: #141516;
+  stroke: var(--text-muted, #88857f);
+  stroke-width: 1.5px;
+}
+
+.graph-node.source:hover .graph-node-circle {
+  stroke: #e2e0db;
+  stroke-width: 2px;
+}
+
+/* Topic Node: secondary off-white */
+.graph-node.topic .graph-node-circle {
+  fill: #191b1c;
+  stroke: #e2e0db;
+  stroke-width: 1.5px;
+}
+
+/* Node labels */
+.graph-node-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  fill: var(--text-primary);
+  text-anchor: middle;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
+.graph-node.selected .graph-node-label {
+  fill: #ffffff;
+  font-weight: 600;
+}
+
+/* Hover Tooltip */
+.graph-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--bg-surface-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  display: none;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  max-width: 220px;
+}
+
+.graph-tooltip-title {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.graph-tooltip-meta {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+/* ── CONTEXTUAL DETAIL PANEL ────────────────────────────────────────────── */
+.graph-panel {
+  width: 360px;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-default);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  z-index: 5;
+  transition: transform 0.2s ease, width 0.2s ease;
+}
+
+.graph-panel-header {
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.graph-panel-body {
+  padding: var(--sp-4);
+  flex: 1;
+}
+
+.panel-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.panel-close-btn:hover {
+  color: var(--text-primary);
+}
+
+.relationship-strength-meter {
+  height: 4px;
+  background: var(--bg-surface-3);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 6px 0 10px 0;
+}
+
+.relationship-strength-fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .graph-page-container {
+    height: auto;
+  }
+  .graph-workspace {
+    flex-direction: column;
+    height: 600px;
+  }
+  .graph-panel {
+    width: 100%;
+    height: 320px;
+    border-left: none;
+    border-top: 1px solid var(--border-default);
+  }
+}

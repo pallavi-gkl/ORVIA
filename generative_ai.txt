@@ -1,0 +1,15 @@
+Generative AI and Modern Software Development
+
+Generative AI is changing software development through code generation, documentation, testing, debugging, and software maintenance.
+
+Large Language Models are widely used for code generation and natural language programming. Transformer architectures are important to modern language models.
+
+AI coding assistants can generate code from natural language descriptions. Developers can use these systems for prototyping, documentation, test generation, and debugging.
+
+Retrieval Augmented Generation, commonly called RAG, can provide external context to language models. RAG combines information retrieval with language generation.
+
+AI agents extend these capabilities by allowing systems to perform multiple steps toward a goal. An AI agent may plan tasks, use tools, retrieve information, and evaluate intermediate results.
+
+Software engineering teams are increasingly exploring Generative AI for automation and developer productivity. However, generated code still requires human review, testing, security checks, and validation.
+
+Important concepts include Generative AI, Large Language Models, Transformers, RAG, AI Agents, Code Generation, Automation, Software Engineering, Testing, and Developer Productivity.

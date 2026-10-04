@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="empty-state empty-state-bordered" style="margin-top: 10vh; padding: var(--sp-16) var(--sp-8);">
+  <div class="t-mono t-danger" style="font-size: var(--text-3xl); font-weight: bold; margin-bottom: var(--sp-2);">500</div>
+  <div class="empty-state-title">Internal Workspace Execution Error</div>
+  <div class="empty-state-body">
+    An unexpected error occurred while executing the workspace pipeline. Check your system logs for detailed traceback.
+  </div>
+  <a href="{{ url_for('overview') }}" class="btn btn-secondary">
+    Return to Overview
+  </a>
+</div>
+{% endblock %}

@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="sources-workspace">
+
+  <!-- ── PAGE HEADER ─────────────────────────────────────────────────────── -->
+  <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="badge badge-accent">RESEARCH ARCHIVE</span>
+        <span class="t-mono t-muted">{{ total_sources }} INDEXED SOURCES</span>
+      </div>
+      <h2 class="t-h1">Sources</h2>
+      <p class="t-secondary mt-1">
+        Your research material, organized and ready to explore.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button class="btn btn-secondary btn-sm" id="seed-demo-btn" title="Seed realistic demo research papers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        Load Sample Material
+      </button>
+
+      <button class="btn btn-primary" id="open-add-source-modal-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add Source
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SEARCH, FILTER & SORT TOOLBAR ───────────────────────────────────── -->
+  <div class="sources-toolbar mb-6">
+    <div class="sources-toolbar-left">
+      <!-- Search Input -->
+      <form method="GET" action="{{ url_for('sources') }}" class="source-search-form" id="source-search-form">
+        <input type="hidden" name="type" value="{{ current_type }}">
+        <input type="hidden" name="sort" value="{{ sort_by }}">
+        <div class="source-search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            name="q"
+            id="source-search-input"
+            class="source-search-input"
+            placeholder="Search by title or filename..."
+            value="{{ search_query }}"
+            autocomplete="off"
+          >
+          {% if search_query %}
+          <a href="{{ url_for('sources', type=current_type, sort=sort_by) }}" class="source-search-clear" title="Clear search">✕</a>
+          {% endif %}
+        </div>
+      </form>
+
+      <!-- Filter Pills -->
+      <div class="source-filter-pills">
+        <a href="{{ url_for('sources', type='all', q=search_query, sort=sort_by) }}" class="filter-pill {% if current_type == 'all' %}active{% endif %}">
+          All <span class="pill-count">{{ counts.all }}</span>
+        </a>
+        <a href="{{ url_for('sources', type='txt', q=search_query, sort=sort_by) }}" class="filter-pill {% if current_type == 'txt' %}active{% endif %}">
+          TXT <span class="pill-count">{{ counts.txt }}</span>
+        </a>
+        <a href="{{ url_for('sources', type='csv', q=search_query, sort=sort_by) }}" class="filter-pill {% if current_type == 'csv' %}active{% endif %}">
+          CSV <span class="pill-count">{{ counts.csv }}</span>
+        </a>
+        <a href="{{ url_for('sources', type='json', q=search_query, sort=sort_by) }}" class="filter-pill {% if current_type == 'json' %}active{% endif %}">
+          JSON <span class="pill-count">{{ counts.json }}</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Sort Dropdown -->
+    <div class="sources-toolbar-right">
+      <div class="source-sort-group">
+        <label for="source-sort-select" class="t-label">Sort:</label>
+        <select id="source-sort-select" class="form-select source-sort-select" onchange="window.location.href=this.value;">
+          <option value="{{ url_for('sources', type=current_type, q=search_query, sort='newest') }}" {% if sort_by == 'newest' %}selected{% endif %}>Newest First</option>
+          <option value="{{ url_for('sources', type=current_type, q=search_query, sort='oldest') }}" {% if sort_by == 'oldest' %}selected{% endif %}>Oldest First</option>
+          <option value="{{ url_for('sources', type=current_type, q=search_query, sort='name') }}" {% if sort_by == 'name' %}selected{% endif %}>Name (A–Z)</option>
+          <option value="{{ url_for('sources', type=current_type, q=search_query, sort='size') }}" {% if sort_by == 'size' %}selected{% endif %}>Size (Largest)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SOURCE LIBRARY LIST / GRID ───────────────────────────────────────── -->
+  {% if sources %}
+    <div class="sources-list" id="sources-list-container">
+      {% for s in sources %}
+      <div class="source-card" data-source-id="{{ s.id }}">
+        <div class="source-card-main">
+          <div class="flex items-center gap-2 mb-1">
+            <!-- Format badge -->
+            <span class="badge {% if s.file_type == 'txt' %}badge-accent{% elif s.file_type == 'csv' %}badge-default{% elif s.file_type == 'json' %}badge-default{% else %}badge-default{% endif %}">
+              {{ (s.file_type or 'txt')|upper }}
+            </span>
+            <span class="t-mono t-muted" style="font-size: 11px;">
+              {{ (s.file_size / 1024)|round(1) }} KB
+            </span>
+            <span class="status-dot active" title="Indexed and ready for synthesis"></span>
+          </div>
+
+          <!-- Title link -->
+          <a href="{{ url_for('source_detail', source_id=s.id) }}" class="source-card-title">
+            {{ s.title }}
+          </a>
+
+          <!-- Metadata line -->
+          <div class="source-card-meta">
+            <span class="t-mono">{{ s.filename }}</span>
+            <span>·</span>
+            <span>
+              {% if s.word_count > 0 %}
+                {{ '{:,}'.format(s.word_count) }} words
+              {% else %}
+                {{ '{:,}'.format(s.character_count) }} chars
+              {% endif %}
+            </span>
+            <span>·</span>
+            <span class="t-muted">
+              Imported {{ (s.imported_at or s.created_at)|datefmt }}
+            </span>
+          </div>
+        </div>
+
+        <div class="source-card-actions">
+          <a href="{{ url_for('source_detail', source_id=s.id) }}" class="btn btn-ghost btn-sm" title="Inspect source">
+            Inspect →
+          </a>
+          <button class="btn btn-ghost btn-sm source-quick-delete" data-id="{{ s.id }}" data-title="{{ s.title }}" title="Remove source">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 14px; height: 14px; color: var(--text-muted);">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  {% elif search_query or current_type != 'all' %}
+    <!-- Filtered Empty State -->
+    <div class="empty-state empty-state-bordered">
+      <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <div class="empty-state-title">No sources matched your query</div>
+      <div class="empty-state-body">
+        No research materials found matching "{{ search_query }}" in category "{{ current_type }}".
+      </div>
+      <a href="{{ url_for('sources') }}" class="btn btn-secondary btn-sm">
+        Reset Filters
+      </a>
+    </div>
+
+  {% else %}
+    <!-- Full Empty State -->
+    <div class="empty-state empty-state-bordered" style="padding: var(--sp-16) var(--sp-8);">
+      <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      </svg>
+      <div class="empty-state-title">Your research library is empty.</div>
+      <div class="empty-state-body">
+        Add your first source and begin building your knowledge space. ORVIA ingests plain text research notes (.txt), structured benchmarks (.csv), and schema data (.json) directly into your private local store.
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="btn btn-primary" onclick="document.getElementById('open-add-source-modal-btn').click();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Source
+        </button>
+        <button class="btn btn-secondary" id="empty-seed-demo-btn">
+          Load Sample Research Material
+        </button>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+
+<!-- ── ADD SOURCE MODAL ──────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="add-source-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="add-source-modal-title">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="flex items-center gap-2">
+        <span class="badge badge-accent">INGESTION</span>
+        <h3 class="t-h3" id="add-source-modal-title">Add Research Source</h3>
+      </div>
+      <button class="modal-close-btn" id="close-add-source-modal-btn" aria-label="Close modal">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Step 1: File Dropzone -->
+      <div class="file-dropzone" id="file-dropzone">
+        <input type="file" id="source-file-input" class="file-input-hidden" accept=".txt,.text,.md,.markdown,.csv,.json">
+        <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <div class="dropzone-prompt">
+          <strong>Drag & drop your research file here</strong>, or <span class="dropzone-browse">browse files</span>
+        </div>
+        <div class="dropzone-hint">
+          Supported formats: <strong>.txt</strong>, <strong>.csv</strong>, <strong>.json</strong> (Up to 25 MB)
+        </div>
+      </div>
+
+      <!-- Step 2: Selected File Card (hidden initially) -->
+      <div class="selected-file-card" id="selected-file-card" style="display: none;">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="badge badge-accent" id="preview-file-ext">TXT</span>
+            <div class="truncate">
+              <div class="td-primary truncate" id="preview-file-name">filename.txt</div>
+              <div class="t-mono t-muted" id="preview-file-size">14.2 KB</div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" id="remove-selected-file-btn" title="Remove selection">✕</button>
+        </div>
+
+        <div class="form-group mt-3">
+          <label class="form-label" for="source-custom-title">Custom Title (Optional)</label>
+          <input type="text" id="source-custom-title" class="form-input" placeholder="Title for research workspace...">
+        </div>
+      </div>
+
+      <!-- Step 3: Progress Tracker (hidden initially) -->
+      <div class="ingest-progress-container" id="ingest-progress-container" style="display: none;">
+        <div class="ingest-progress-steps">
+          <div class="progress-step active" id="p-step-1">
+            <span class="step-dot"></span> <span>Reading source</span>
+          </div>
+          <div class="progress-step" id="p-step-2">
+            <span class="step-dot"></span> <span>Normalizing content</span>
+          </div>
+          <div class="progress-step" id="p-step-3">
+            <span class="step-dot"></span> <span>Extracting metadata</span>
+          </div>
+          <div class="progress-step" id="p-step-4">
+            <span class="step-dot"></span> <span>Saving to workspace</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Status Messages (Alerts) -->
+      <!-- Duplicate Warning Alert -->
+      <div class="alert-box alert-warning" id="duplicate-alert" style="display: none;">
+        <div class="alert-title">Existing Source Detected</div>
+        <div class="alert-message" id="duplicate-alert-msg">
+          This exact content already exists in your library.
+        </div>
+        <div class="alert-actions mt-3">
+          <a href="#" id="view-duplicate-link" class="btn btn-secondary btn-sm">View Existing</a>
+          <button type="button" id="import-anyway-btn" class="btn btn-primary btn-sm">Import Anyway</button>
+        </div>
+      </div>
+
+      <!-- Error Alert -->
+      <div class="alert-box alert-danger" id="error-alert" style="display: none;">
+        <div class="alert-title">Import Failed</div>
+        <div class="alert-message" id="error-alert-msg">An error occurred.</div>
+      </div>
+
+      <!-- Success Alert -->
+      <div class="alert-box alert-success" id="success-alert" style="display: none;">
+        <div class="alert-title">Source added to ORVIA</div>
+        <div class="alert-message" id="success-alert-msg">Successfully indexed in research library.</div>
+        <div class="alert-actions mt-3">
+          <a href="#" id="view-imported-source-link" class="btn btn-primary btn-sm">View Source</a>
+          <button type="button" id="add-another-btn" class="btn btn-secondary btn-sm">Add Another</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer" id="modal-footer-actions">
+      <button type="button" class="btn btn-ghost" id="cancel-add-source-btn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="submit-import-btn" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        Import
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── DELETE CONFIRMATION MODAL ────────────────────────────────────────── -->
+<div class="modal-overlay" id="delete-confirm-modal" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-dialog-sm">
+    <div class="modal-header">
+      <h3 class="t-h3">Remove this source from ORVIA?</h3>
+      <button class="modal-close-btn" id="close-delete-modal-btn">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="t-secondary mb-2" id="delete-confirm-source-title">Source Title</p>
+      <p class="t-muted" style="font-size: var(--text-sm);">
+        This will remove the source and its indexed text from your research workspace. This action cannot be undone.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="cancel-delete-btn">Cancel</button>
+      <button type="button" class="btn btn-danger" id="confirm-delete-btn">Remove Source</button>
+    </div>
+  </div>
+</div>
+{% endblock %}

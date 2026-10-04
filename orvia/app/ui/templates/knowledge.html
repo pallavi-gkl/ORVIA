@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/knowledge_graph.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="graph-page-container">
+
+  <!-- ── HEADER ────────────────────────────────────────────────────────────── -->
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
+    <div>
+      <div class="t-label t-accent mb-1">TOPOLOGICAL KNOWLEDGE GRAPH</div>
+      <h1 class="t-h1">Knowledge Graph & Topology</h1>
+      <p class="t-secondary mt-1" style="font-size: var(--text-sm);">
+        Explore how concepts, sources, and topics connect within your research collection based on observed co-occurrence evidence.
+      </p>
+    </div>
+
+    <!-- Actions & Global Search -->
+    <div class="flex items-center gap-3">
+      <!-- Search within graph -->
+      <div class="graph-search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; color: var(--text-muted); margin-right: 6px; flex-shrink: 0;">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="graph-search-input" class="graph-search-input" placeholder="Search concepts in graph..." autocomplete="off">
+        <div id="graph-search-dropdown" class="graph-search-dropdown"></div>
+      </div>
+
+      <button class="btn btn-secondary btn-sm" id="rebuild-graph-btn" title="Recalculate topology cache from database">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        Rebuild Graph
+      </button>
+
+      <a href="{{ url_for('concepts_page') }}" class="btn btn-ghost btn-sm">
+        Concepts Directory →
+      </a>
+    </div>
+  </div>
+
+  <!-- ── GRAPH TOOLBAR ─────────────────────────────────────────────────────── -->
+  <div class="graph-toolbar">
+    <!-- Exploration Modes -->
+    <div class="flex items-center gap-3">
+      <span class="t-muted" style="font-size: var(--text-xs);">Mode:</span>
+      <div class="graph-mode-pills" id="mode-pills">
+        <button class="graph-mode-btn {% if mode == 'overview' %}active{% endif %}" data-mode="overview">
+          Overview
+        </button>
+        <button class="graph-mode-btn {% if mode == 'focus' %}active{% endif %}" data-mode="focus">
+          Focus
+        </button>
+        <button class="graph-mode-btn {% if mode == 'sources' %}active{% endif %}" data-mode="sources">
+          Sources
+        </button>
+        <button class="graph-mode-btn {% if mode == 'connections' %}active{% endif %}" data-mode="connections">
+          Connections
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters & Sizing -->
+    <div class="flex items-center gap-4 flex-wrap">
+      <!-- Strength filter -->
+      <div class="flex items-center gap-2">
+        <span class="t-muted" style="font-size: var(--text-xs);">Min Strength:</span>
+        <select id="strength-select" class="form-input" style="padding: 2px 8px; font-size: 11px; height: 26px; width: auto; background: var(--bg-surface-2);">
+          <option value="0.0">All observed</option>
+          <option value="0.35">Moderate (≥ 35%)</option>
+          <option value="0.65">Strong (≥ 65%)</option>
+        </select>
+      </div>
+
+      <!-- Max nodes filter -->
+      <div class="flex items-center gap-2">
+        <span class="t-muted" style="font-size: var(--text-xs);">Max Nodes:</span>
+        <select id="max-nodes-select" class="form-input" style="padding: 2px 8px; font-size: 11px; height: 26px; width: auto; background: var(--bg-surface-2);">
+          <option value="25">25 nodes</option>
+          <option value="40" selected>40 nodes</option>
+          <option value="60">60 nodes</option>
+          <option value="100">100 nodes</option>
+        </select>
+      </div>
+
+      <button class="btn btn-ghost btn-sm" id="reset-view-btn" style="padding: 4px 8px; font-size: 11px;">
+        Reset View ⟲
+      </button>
+    </div>
+  </div>
+
+  <!-- ── MAIN GRAPH WORKSPACE ──────────────────────────────────────────────── -->
+  <div class="graph-workspace">
+
+    <!-- Graph Canvas Container -->
+    <div class="graph-canvas-container" id="graph-container">
+      
+      <!-- Scope indicator -->
+      <div class="graph-scope-indicator" id="graph-scope-badge">
+        Showing {{ initial_graph.metadata.node_count or 0 }} concepts · {{ initial_graph.metadata.edge_count or 0 }} connections
+      </div>
+
+      <!-- SVG Canvas -->
+      <svg id="knowledge-graph-svg" class="graph-svg"></svg>
+
+      <!-- Viewport overlay controls -->
+      <div class="graph-viewport-controls">
+        <button class="graph-ctrl-btn" id="zoom-in-btn" title="Zoom in">＋</button>
+        <button class="graph-ctrl-btn" id="zoom-out-btn" title="Zoom out">－</button>
+        <button class="graph-ctrl-btn" id="zoom-reset-btn" title="Reset view">⟲</button>
+      </div>
+
+      <!-- Empty State Overlay (if 0 nodes) -->
+      <div id="graph-empty-state" class="flex flex-col items-center justify-center p-8 text-center" style="position: absolute; inset: 0; background: var(--bg-base); display: {% if initial_graph.is_empty %}flex{% else %}none{% endif %};">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 56px; height: 56px; color: var(--text-muted); margin-bottom: 16px;">
+          <circle cx="12" cy="12" r="3.5"></circle>
+          <path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path>
+        </svg>
+
+        {% if stats.total_concepts == 0 %}
+          <h3 class="t-h3 mb-2">Your knowledge graph is still forming</h3>
+          <p class="t-secondary mb-6" style="max-width: 460px; font-size: var(--text-sm);">
+            Add and analyze research sources to reveal observed connections between concepts.
+          </p>
+          <div class="flex items-center gap-3">
+            <a href="{{ url_for('sources') }}" class="btn btn-primary btn-sm">Add Sources</a>
+            <a href="{{ url_for('concepts_page') }}" class="btn btn-secondary btn-sm">Analyze Concepts</a>
+          </div>
+        {% elif stats.total_concepts == 1 %}
+          <h3 class="t-h3 mb-2">1 Concept Detected</h3>
+          <p class="t-secondary mb-4" style="max-width: 420px; font-size: var(--text-sm);">
+            0 observed relationships. More connections will appear as additional sources and concepts are analyzed.
+          </p>
+          <a href="{{ url_for('sources') }}" class="btn btn-secondary btn-sm">Add More Sources</a>
+        {% else %}
+          <h3 class="t-h3 mb-2">No Observed Relationships Yet</h3>
+          <p class="t-secondary mb-6" style="max-width: 440px; font-size: var(--text-sm);">
+            Relationships appear when concepts are repeatedly observed within shared sources or nearby text.
+          </p>
+          <button class="btn btn-primary btn-sm" id="empty-analyze-btn">Run Concept Analysis</button>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- Contextual Detail Panel -->
+    <div class="graph-panel" id="graph-detail-panel">
+      <!-- Populated dynamically by knowledge_graph.js -->
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Initial Data Injection -->
+<script id="initial-graph-data" type="application/json">
+  {{ initial_graph|tojson|safe }}
+</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/knowledge_graph.js') }}"></script>
+<script>
+  (function () {
+    const rawDataEl = document.getElementById('initial-graph-data');
+    let graphData = { nodes: [], edges: [], metadata: {} };
+    if (rawDataEl) {
+      try {
+        graphData = JSON.parse(rawDataEl.textContent);
+      } catch (err) {
+        console.error('Error parsing initial graph JSON:', err);
+      }
+    }
+
+    const svg = document.getElementById('knowledge-graph-svg');
+    const panel = document.getElementById('graph-detail-panel');
+    const scopeBadge = document.getElementById('graph-scope-badge');
+    const emptyState = document.getElementById('graph-empty-state');
+
+    const renderer = new KnowledgeGraphRenderer(svg, panel);
+    renderer.loadGraph(graphData);
+
+    // Update scope badge
+    function updateScopeBadge(meta) {
+      if (!scopeBadge || !meta) return;
+      scopeBadge.textContent = `Showing ${meta.node_count || 0} concepts · ${meta.edge_count || 0} connections`;
+      if (emptyState) {
+        emptyState.style.display = (meta.node_count === 0) ? 'flex' : 'none';
+      }
+    }
+    updateScopeBadge(graphData.metadata);
+
+    // Zoom buttons
+    document.getElementById('zoom-in-btn').addEventListener('click', () => renderer.zoom(1));
+    document.getElementById('zoom-out-btn').addEventListener('click', () => renderer.zoom(-1));
+    document.getElementById('zoom-reset-btn').addEventListener('click', () => renderer.resetView());
+    document.getElementById('reset-view-btn').addEventListener('click', () => renderer.resetView());
+
+    // Current query state
+    let currentMode = '{{ mode }}';
+    let currentFocus = '{{ focus_concept_id or "" }}';
+
+    // Fetch and reload graph
+    async function reloadGraph() {
+      const minStrength = document.getElementById('strength-select').value;
+      const maxNodes = document.getElementById('max-nodes-select').value;
+      const q = document.getElementById('graph-search-input').value.trim();
+
+      const params = new URLSearchParams({
+        mode: currentMode,
+        min_strength: minStrength,
+        max_nodes: maxNodes,
+      });
+      if (currentFocus) params.append('focus', currentFocus);
+      if (q) params.append('q', q);
+
+      try {
+        const resp = await fetch(`/api/knowledge/graph?${params.toString()}`);
+        const data = await resp.json();
+        if (data.status === 'ok') {
+          renderer.loadGraph(data.graph);
+          updateScopeBadge(data.graph.metadata);
+        }
+      } catch (err) {
+        console.error('Failed to load filtered graph:', err);
+      }
+    }
+
+    // Mode Buttons
+    const modeBtns = document.querySelectorAll('.graph-mode-btn');
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode = btn.getAttribute('data-mode');
+        if (currentMode !== 'focus') {
+          currentFocus = '';
+        }
+        reloadGraph();
+      });
+    });
+
+    // Select dropdowns
+    document.getElementById('strength-select').addEventListener('change', reloadGraph);
+    document.getElementById('max-nodes-select').addEventListener('change', reloadGraph);
+
+    // Rebuild Graph
+    const rebuildBtn = document.getElementById('rebuild-graph-btn');
+    if (rebuildBtn) {
+      rebuildBtn.addEventListener('click', async () => {
+        rebuildBtn.disabled = true;
+        rebuildBtn.textContent = 'Rebuilding...';
+        try {
+          const resp = await fetch('/api/knowledge/graph/rebuild', { method: 'POST' });
+          const res = await resp.json();
+          if (res.status === 'ok') {
+            await reloadGraph();
+          }
+        } catch (_) {}
+        rebuildBtn.disabled = false;
+        rebuildBtn.textContent = 'Rebuild Graph';
+      });
+    }
+
+    // Graph search input & dropdown
+    const searchInput = document.getElementById('graph-search-input');
+    const searchDropdown = document.getElementById('graph-search-dropdown');
+    let searchDebounce = null;
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchDebounce);
+      const query = searchInput.value.trim();
+      if (!query) {
+        searchDropdown.style.display = 'none';
+        return;
+      }
+
+      searchDebounce = setTimeout(async () => {
+        try {
+          const resp = await fetch(`/api/knowledge/graph/search?q=${encodeURIComponent(query)}`);
+          const data = await resp.json();
+          if (data.status === 'ok' && data.results && data.results.matches && data.results.matches.length > 0) {
+            searchDropdown.innerHTML = data.results.matches.slice(0, 6).map(m => `
+              <div class="graph-search-item" data-id="${m.id}">
+                <span>${m.label}</span>
+                <span class="t-muted" style="font-size: 10px;">${m.sources} src · ${m.degree} links</span>
+              </div>
+            `).join('');
+            searchDropdown.style.display = 'block';
+
+            searchDropdown.querySelectorAll('.graph-search-item').forEach(item => {
+              item.addEventListener('click', () => {
+                const id = item.getAttribute('data-id');
+                searchDropdown.style.display = 'none';
+                searchInput.value = '';
+                renderer.centerOnNode(id);
+              });
+            });
+          } else {
+            searchDropdown.innerHTML = `<div class="p-2 t-muted" style="font-size: 11px;">No matching concepts found.</div>`;
+            searchDropdown.style.display = 'block';
+          }
+        } catch (_) {}
+      }, 200);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.graph-search-wrap')) {
+        searchDropdown.style.display = 'none';
+      }
+    });
+
+  })();
+</script>
+{% endblock %}

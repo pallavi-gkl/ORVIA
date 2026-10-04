@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="empty-state empty-state-bordered" style="margin-top: 10vh; padding: var(--sp-16) var(--sp-8);">
+  <div class="t-mono t-accent" style="font-size: var(--text-3xl); font-weight: bold; margin-bottom: var(--sp-2);">404</div>
+  <div class="empty-state-title">Location not found in workspace</div>
+  <div class="empty-state-body">
+    The requested research resource or view does not exist in this workspace.
+  </div>
+  <a href="{{ url_for('overview') }}" class="btn btn-primary">
+    Return to Overview
+  </a>
+</div>
+{% endblock %}

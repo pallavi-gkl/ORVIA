@@ -1,0 +1,764 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/investigation.css') }}">
+{% endblock %}
+{% block content %}
+
+{% set inv = workspace.investigation %}
+{% set stats = workspace.stats.to_dict() %}
+{% set inv_id = inv.id %}
+
+<!-- Data attribute for JS -->
+<div data-inv-id="{{ inv_id }}" style="display:none;"></div>
+
+<!-- Global flash container -->
+<div id="inv-global-flash"></div>
+
+<!-- ── INVESTIGATION HEADER ──────────────────────────────────────── -->
+<div class="inv-header">
+  <div class="inv-header-label">Investigation</div>
+  <div class="inv-title-row">
+    <h1 class="inv-title-text">{{ inv.title }}</h1>
+    <span class="inv-status-badge status-{{ inv.status }}">{{ inv.status }}</span>
+  </div>
+  <p class="inv-question">{{ inv.research_question }}</p>
+  <div class="inv-meta">
+    <span>Started {{ (inv.created_at|string)[:10] if inv.created_at else '—' }}</span>
+    <span>Updated {{ (inv.updated_at|string)[:10] if inv.updated_at else '—' }}</span>
+    {% if inv.completed_at %}<span>Completed {{ (inv.completed_at|string)[:10] }}</span>{% endif %}
+  </div>
+
+  <!-- Status action buttons -->
+  <div class="inv-status-actions" style="margin-top:0.85rem;">
+    {% if inv.status == 'draft' %}
+      <button class="inv-action-btn primary" data-status-action="active" data-original-text="Activate">Activate</button>
+    {% elif inv.status == 'active' %}
+      <button class="inv-action-btn" data-status-action="paused" data-original-text="Pause">Pause</button>
+      <button class="inv-action-btn primary" data-status-action="completed" data-original-text="Complete">Mark Complete</button>
+    {% elif inv.status == 'paused' %}
+      <button class="inv-action-btn primary" data-status-action="active" data-original-text="Resume">Resume</button>
+      <button class="inv-action-btn" data-status-action="completed" data-original-text="Complete">Mark Complete</button>
+    {% elif inv.status == 'completed' %}
+      <button class="inv-action-btn" data-status-action="archived" data-original-text="Archive">Archive</button>
+    {% endif %}
+    <button class="inv-action-btn" style="color:var(--accent);border-color:rgba(181,196,34,0.3);" onclick="apiCall('/api/reports','POST',{investigation_id:'{{ inv_id }}'}).then(r=>{window.location.href='/reports/'+r.report.id}).catch(e=>alert(e.message))">Create Research Report</button>
+    <button class="inv-action-btn danger" onclick="if(confirm('Delete this investigation and all its data?')){apiCall('/api/investigations/{{ inv_id }}/delete','POST').then(()=>{window.location.href='/investigations'}).catch(e=>alert(e.message))}">Delete</button>
+  </div>
+</div>
+
+<!-- ── WORKSPACE LAYOUT ──────────────────────────────────────────── -->
+<div class="inv-workspace">
+
+  <!-- Main Content -->
+  <div class="inv-content">
+
+    <!-- Navigation Tabs -->
+    <nav class="inv-nav" role="tablist">
+      <a class="inv-nav-tab {% if active_tab == 'overview' %}active{% endif %}" data-tab="overview" href="?tab=overview" role="tab">
+        Overview
+      </a>
+      <a class="inv-nav-tab {% if active_tab == 'sources' %}active{% endif %}" data-tab="sources" href="?tab=sources" role="tab">
+        Sources <span class="inv-nav-badge">{{ stats.source_count }}</span>
+      </a>
+      <a class="inv-nav-tab {% if active_tab == 'concepts' %}active{% endif %}" data-tab="concepts" href="?tab=concepts" role="tab">
+        Concepts <span class="inv-nav-badge">{{ stats.concept_count }}</span>
+      </a>
+      <a class="inv-nav-tab {% if active_tab == 'evidence' %}active{% endif %}" data-tab="evidence" href="?tab=evidence" role="tab">
+        Evidence <span class="inv-nav-badge">{{ stats.evidence_count }}</span>
+      </a>
+      <a class="inv-nav-tab {% if active_tab == 'questions' %}active{% endif %}" data-tab="questions" href="?tab=questions" role="tab">
+        Questions <span class="inv-nav-badge">{{ stats.open_questions_count }}</span>
+      </a>
+      <a class="inv-nav-tab {% if active_tab == 'findings' %}active{% endif %}" data-tab="findings" href="?tab=findings" role="tab">
+        Findings <span class="inv-nav-badge">{{ stats.findings_count }}</span>
+      </a>
+      <a class="inv-nav-tab {% if active_tab == 'notes' %}active{% endif %}" data-tab="notes" href="?tab=notes" role="tab">
+        Notes <span class="inv-nav-badge">{{ stats.notes_count }}</span>
+      </a>
+      <a class="inv-nav-tab {% if active_tab == 'activity' %}active{% endif %}" data-tab="activity" href="?tab=activity" role="tab">
+        Activity
+      </a>
+    </nav>
+
+    <!-- ══ TAB: OVERVIEW ══════════════════════════════════════════ -->
+    <div class="inv-tab-panel {% if active_tab == 'overview' %}active{% endif %}" data-tab="overview">
+
+      <!-- Stats Grid -->
+      <div class="inv-stats-grid">
+        <div class="inv-stat-cell">
+          <div class="inv-stat-number">{{ stats.source_count }}</div>
+          <div class="inv-stat-label">Sources</div>
+        </div>
+        <div class="inv-stat-cell">
+          <div class="inv-stat-number">{{ stats.concept_count }}</div>
+          <div class="inv-stat-label">Concepts</div>
+        </div>
+        <div class="inv-stat-cell">
+          <div class="inv-stat-number">{{ stats.evidence_count }}</div>
+          <div class="inv-stat-label">Evidence</div>
+        </div>
+        <div class="inv-stat-cell">
+          <div class="inv-stat-number">{{ stats.open_questions_count }}</div>
+          <div class="inv-stat-label">Open Questions</div>
+        </div>
+        <div class="inv-stat-cell">
+          <div class="inv-stat-number">{{ stats.findings_count }}</div>
+          <div class="inv-stat-label">Findings</div>
+        </div>
+      </div>
+
+      <!-- Research Question card -->
+      <div class="inv-panel-card" style="margin-bottom:1.5rem;">
+        <div class="inv-panel-label">Research Question</div>
+        <p style="font-size:1rem;line-height:1.55;color:#e2e0db;margin:0;">{{ inv.research_question }}</p>
+        {% if inv.description %}
+        <p style="font-size:0.82rem;color:var(--text-secondary,#b2afa8);margin:0.75rem 0 0;">{{ inv.description }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Recent Evidence -->
+      {% if workspace.evidence %}
+      <div class="inv-section">
+        <div class="inv-section-header">
+          <span class="inv-section-title">Recent Evidence</span>
+          <a class="inv-nav-tab" data-tab="evidence" href="?tab=evidence" style="padding:0;font-size:0.72rem;">View all →</a>
+        </div>
+        {% for ev in workspace.evidence[:3] %}
+        <div class="research-record research-record-evidence" data-ev-type="{{ ev.evidence_type }}">
+          <div class="record-header">
+            <span class="record-type-badge">{{ ev.evidence_type }}</span>
+            <span class="record-confidence">{{ (ev.confidence * 100)|int }}% confidence</span>
+          </div>
+          <p class="record-statement">{{ ev.statement }}</p>
+          <div class="record-provenance">
+            <span class="record-provenance-dot"></span>
+            {{ ev.source_title or 'Unknown source' }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Open Questions -->
+      {% if workspace.open_questions %}
+      <div class="inv-section">
+        <div class="inv-section-header">
+          <span class="inv-section-title">Open Questions</span>
+        </div>
+        {% for q in workspace.open_questions[:5] %}
+        <div class="research-record research-record-question">
+          <p class="record-statement">{{ q.question }}</p>
+          <div class="record-footer">
+            <span class="record-date">{{ (q.created_at|string)[:10] if q.created_at else '' }}</span>
+            <div class="record-actions">
+              <button class="record-action-btn" data-question-id="{{ q.id }}" data-question-status="RESOLVED">Resolve</button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Research Gaps -->
+      {% if workspace.gaps %}
+      <div class="inv-section">
+        <div class="inv-section-header">
+          <span class="inv-section-title">Research Gaps</span>
+          <span style="font-size:0.72rem;color:var(--text-secondary,#b2afa8);">{{ workspace.gaps|length }} detected</span>
+        </div>
+        {% for gap in workspace.gaps %}
+        <div class="gap-card severity-{{ gap.severity }}">
+          <div class="gap-title">{{ gap.description }}</div>
+          {% if gap.action_label %}
+          <div class="gap-action">→ {{ gap.action_label }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Graph link -->
+      <a href="{{ url_for('knowledge') }}?mode=investigation&inv={{ inv_id }}" class="btn btn-ghost" style="margin-top:1rem;">
+        Explore Knowledge Graph →
+      </a>
+
+    </div>
+
+    <!-- ══ TAB: SOURCES ═══════════════════════════════════════════ -->
+    <div class="inv-tab-panel {% if active_tab == 'sources' %}active{% endif %}" data-tab="sources">
+
+      <!-- Source Triage Filters -->
+      <div class="inv-source-triage-filters" style="display:flex; gap:0.4rem; margin-bottom:1rem; flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm triage-btn active" data-filter="all" onclick="filterSourcesTriage('all', this)">All ({{ workspace.sources|length }})</button>
+        <button class="btn btn-ghost btn-sm triage-btn" data-filter="PRIMARY_EVIDENCE" onclick="filterSourcesTriage('PRIMARY_EVIDENCE', this)">Primary Evidence</button>
+        <button class="btn btn-ghost btn-sm triage-btn" data-filter="RELEVANT" onclick="filterSourcesTriage('RELEVANT', this)">Relevant</button>
+        <button class="btn btn-ghost btn-sm triage-btn" data-filter="BACKGROUND" onclick="filterSourcesTriage('BACKGROUND', this)">Background</button>
+        <button class="btn btn-ghost btn-sm triage-btn" data-filter="CONTRADICTORY" onclick="filterSourcesTriage('CONTRADICTORY', this)">Contradictory</button>
+        <button class="btn btn-ghost btn-sm triage-btn" data-filter="REFERENCE" onclick="filterSourcesTriage('REFERENCE', this)">Reference</button>
+      </div>
+
+      {% if workspace.sources %}
+        {% for src in workspace.sources %}
+        <div class="inv-source-row" data-rel-type="{{ src.relationship_type }}">
+          <a href="{{ url_for('source_detail', source_id=src.source_id) }}" class="inv-source-title" title="{{ src.source_title }}">{{ src.source_title or src.source_id }}</a>
+          <span class="inv-source-type">{{ src.source_type or '—' }}</span>
+          <span class="inv-source-role">{{ src.relationship_type.replace('_', ' ') }}</span>
+          <span class="inv-source-ev-count">{{ src.evidence_count }} evidence</span>
+          <div class="record-actions">
+            <a href="{{ url_for('source_detail', source_id=src.source_id) }}" class="record-action-btn">Open</a>
+            <button class="record-action-btn danger"
+                    data-delete="/api/investigations/{{ inv_id }}/sources/{{ src.source_id }}/remove"
+                    data-delete-label="{{ src.source_title }}">Remove</button>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="inv-empty">
+          <div class="inv-empty-icon">📄</div>
+          <div class="inv-empty-title">No sources attached yet.</div>
+          <div class="inv-empty-body">Attach a source to start collecting evidence.</div>
+        </div>
+      {% endif %}
+
+      <!-- Attach Source Form -->
+      <div class="inv-inline-form" style="margin-top:1.5rem;">
+        <div class="inv-form-group">
+          <label class="inv-form-label">Add Source</label>
+          <select id="sel-source" class="inv-form-select" style="margin-bottom:0.5rem;">
+            <option value="">— Select source —</option>
+            {% set attached_ids = workspace.sources|map(attribute='source_id')|list %}
+            {% for src in all_sources %}
+            {% if src.id not in attached_ids %}
+            <option value="{{ src.id }}">{{ src.title }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+          <select id="sel-source-rel" class="inv-form-select">
+            {% for rt in source_relationship_types %}
+            <option value="{{ rt }}">{{ rt.replace('_', ' ') }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button id="btn-attach-source" class="btn btn-primary btn-sm">Attach Source</button>
+      </div>
+
+    </div>
+
+    <!-- ══ TAB: CONCEPTS ══════════════════════════════════════════ -->
+    <div class="inv-tab-panel {% if active_tab == 'concepts' %}active{% endif %}" data-tab="concepts">
+
+      {% if workspace.concepts %}
+      <div class="concepts-grid" style="margin-bottom:1.5rem;">
+        {% for cpt in workspace.concepts %}
+        <div class="concept-chip-row">
+          <span class="concept-chip {% if cpt.role == 'KEY_CONCEPT' %}role-key{% endif %}">
+            {{ cpt.concept_name or cpt.concept_id }}
+            <span class="chip-role">{{ cpt.role.replace('_', ' ') }}</span>
+            <span class="chip-freq">{{ cpt.occurrence_count }}×</span>
+          </span>
+          <a href="{{ url_for('concept_detail', concept_id=cpt.concept_id) }}" class="record-action-btn" style="font-size:0.65rem;">Explore</a>
+          <button class="record-action-btn danger"
+                  data-delete="/api/investigations/{{ inv_id }}/concepts/{{ cpt.concept_id }}/remove"
+                  data-delete-label="{{ cpt.concept_name or cpt.concept_id }}">Remove</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div class="inv-empty">
+          <div class="inv-empty-icon">💡</div>
+          <div class="inv-empty-title">No concepts tracked yet.</div>
+          <div class="inv-empty-body">Track key concepts to build your investigation's knowledge map.</div>
+        </div>
+      {% endif %}
+
+      <!-- Track Concept Form -->
+      <div class="inv-inline-form">
+        <div class="inv-form-group">
+          <label class="inv-form-label">Track Concept</label>
+          <select id="sel-concept" class="inv-form-select" style="margin-bottom:0.5rem;">
+            <option value="">— Select concept —</option>
+            {% set tracked_ids = workspace.concepts|map(attribute='concept_id')|list %}
+            {% for cpt in all_concepts %}
+            {% if cpt.id not in tracked_ids %}
+            <option value="{{ cpt.id }}">{{ cpt.name }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+          <select id="sel-concept-role" class="inv-form-select">
+            {% for role in concept_roles %}
+            <option value="{{ role }}">{{ role.replace('_', ' ') }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button id="btn-track-concept" class="btn btn-primary btn-sm">Track Concept</button>
+      </div>
+
+    </div>
+
+    <!-- ══ TAB: EVIDENCE ══════════════════════════════════════════ -->
+    <div class="inv-tab-panel {% if active_tab == 'evidence' %}active{% endif %}" data-tab="evidence">
+
+      <!-- Record search -->
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;">
+        <input id="inv-record-search" class="inv-search-input" type="text" placeholder="Filter evidence…" autocomplete="off" style="max-width:280px;">
+      </div>
+
+      <!-- Type filter -->
+      <div class="evidence-filter-bar">
+        <button class="evidence-filter-btn active" data-ev-type="ALL">All</button>
+        {% for et in evidence_types %}
+        <button class="evidence-filter-btn" data-ev-type="{{ et }}">{{ et }}</button>
+        {% endfor %}
+      </div>
+
+      {% if workspace.evidence %}
+        {% for ev in workspace.evidence %}
+        <div class="research-record research-record-evidence" data-ev-type="{{ ev.evidence_type }}">
+          <div class="record-header">
+            <span class="record-type-badge">{{ ev.evidence_type }}</span>
+            <span class="record-confidence">{{ (ev.confidence * 100)|int }}%</span>
+          </div>
+          <p class="record-statement">{{ ev.statement }}</p>
+          {% if ev.excerpt %}
+          <div class="record-excerpt">{{ ev.excerpt }}</div>
+          {% endif %}
+          <div class="record-provenance">
+            <span class="record-provenance-dot"></span>
+            {{ ev.source_title or 'Unknown source' }}
+            {% if ev.location %} · {{ ev.location }}{% endif %}
+          </div>
+          <div class="record-footer">
+            <span class="record-date">{{ (ev.created_at|string)[:10] if ev.created_at else '' }}</span>
+            <div class="record-actions">
+              <button class="record-action-btn danger"
+                      data-delete="/api/investigations/{{ inv_id }}/evidence/{{ ev.id }}/delete"
+                      data-delete-label="this evidence">Delete</button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="inv-empty">
+          <div class="inv-empty-icon">🔍</div>
+          <div class="inv-empty-title">No evidence recorded yet.</div>
+          <div class="inv-empty-body">Record observations, facts, and claims from your sources.</div>
+        </div>
+      {% endif %}
+
+      <!-- Add Evidence Form -->
+      <button class="btn btn-ghost btn-sm" data-toggle-form="form-add-evidence" style="margin-top:1rem;">
+        + Record Evidence
+      </button>
+      <form id="form-add-evidence" class="inv-inline-form hidden">
+        <div class="inv-form-group">
+          <label class="inv-form-label">Statement *</label>
+          <textarea name="statement" class="inv-form-textarea" placeholder="What does this evidence say?" required></textarea>
+        </div>
+        <div class="inv-form-group">
+          <label class="inv-form-label">Source *</label>
+          <select name="source_id" class="inv-form-select" required>
+            <option value="">— Select source —</option>
+            {% for src in workspace.sources %}
+            <option value="{{ src.source_id }}">{{ src.source_title or src.source_id }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="inv-form-group">
+          <label class="inv-form-label">Excerpt (optional)</label>
+          <textarea name="excerpt" class="inv-form-textarea" rows="2" placeholder="Direct quote from source…"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div class="inv-form-group">
+            <label class="inv-form-label">Type</label>
+            <select name="evidence_type" class="inv-form-select">
+              {% for et in evidence_types %}
+              <option value="{{ et }}">{{ et }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="inv-form-group">
+            <label class="inv-form-label">Confidence</label>
+            <select name="confidence" class="inv-form-select">
+              <option value="1.0">High (100%)</option>
+              <option value="0.75">Medium (75%)</option>
+              <option value="0.5">Low (50%)</option>
+              <option value="0.25">Uncertain (25%)</option>
+            </select>
+          </div>
+        </div>
+        <div class="inv-form-group">
+          <label class="inv-form-label">Location / Reference (optional)</label>
+          <input name="location" class="inv-form-input" type="text" placeholder="e.g. p.42, section 3…">
+        </div>
+        <div class="inv-form-actions">
+          <button type="submit" class="btn btn-primary btn-sm">Record Evidence</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-toggle-form="form-add-evidence">Cancel</button>
+        </div>
+      </form>
+
+    </div>
+
+    <!-- ══ TAB: QUESTIONS ═════════════════════════════════════════ -->
+    <div class="inv-tab-panel {% if active_tab == 'questions' %}active{% endif %}" data-tab="questions">
+
+      <!-- Open Questions -->
+      {% if workspace.open_questions %}
+      <div class="inv-section">
+        <div class="inv-section-title" style="margin-bottom:0.75rem;">Open Questions ({{ workspace.open_questions|length }})</div>
+        {% for q in workspace.open_questions %}
+        <div class="research-record research-record-question">
+          <p class="record-statement">{{ q.question }}</p>
+          <div class="record-footer">
+            <span class="record-date">{{ (q.created_at|string)[:10] if q.created_at else '' }}</span>
+            <div class="record-actions">
+              {% if q.status == 'OPEN' %}
+              <button class="record-action-btn" data-question-id="{{ q.id }}" data-question-status="INVESTIGATING">Investigating</button>
+              {% endif %}
+              <button class="record-action-btn primary" data-question-id="{{ q.id }}" data-question-status="RESOLVED">Resolve</button>
+              <button class="record-action-btn danger"
+                      data-delete="/api/investigations/{{ inv_id }}/questions/{{ q.id }}/delete"
+                      data-delete-label="this question">Delete</button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Resolved Questions -->
+      {% set resolved = workspace.resolved_questions or [] %}
+      {% if resolved %}
+      <div class="inv-section">
+        <div class="inv-section-title" style="margin-bottom:0.75rem;">Resolved ({{ resolved|length }})</div>
+        {% for q in resolved %}
+        <div class="research-record research-record-question resolved">
+          <p class="record-statement" style="color:var(--text-secondary,#b2afa8);text-decoration:line-through;text-decoration-color:rgba(139,137,132,0.4);">{{ q.question }}</p>
+          {% if q.resolution_note %}
+          <div class="record-excerpt">{{ q.resolution_note }}</div>
+          {% endif %}
+          <div class="record-footer">
+            <span class="record-date">Resolved {{ (q.resolved_at|string)[:10] if q.resolved_at else '' }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if not workspace.open_questions and not resolved %}
+        <div class="inv-empty">
+          <div class="inv-empty-icon">❓</div>
+          <div class="inv-empty-title">No questions yet.</div>
+          <div class="inv-empty-body">Add research questions to track what you still need to find out.</div>
+        </div>
+      {% endif %}
+
+      <!-- Add Question -->
+      <button class="btn btn-ghost btn-sm" data-toggle-form="form-add-question" style="margin-top:1rem;">+ Add Question</button>
+      <form id="form-add-question" class="inv-inline-form hidden">
+        <div class="inv-form-group">
+          <label class="inv-form-label">Question *</label>
+          <textarea name="question" class="inv-form-textarea" rows="2" placeholder="What do you still need to find out?" required></textarea>
+        </div>
+        <div class="inv-form-actions">
+          <button type="submit" class="btn btn-primary btn-sm">Add Question</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-toggle-form="form-add-question">Cancel</button>
+        </div>
+      </form>
+
+    </div>
+
+    <!-- ══ TAB: FINDINGS ══════════════════════════════════════════ -->
+    <div class="inv-tab-panel {% if active_tab == 'findings' %}active{% endif %}" data-tab="findings">
+
+      <!-- Research Tensions Banner (surfaced deterministically from CONTRAST evidence) -->
+      <div id="inv-tensions-container" style="display:none; margin-bottom:1.5rem;"></div>
+
+      {% if workspace.findings %}
+        {% for f in workspace.findings %}
+        <div class="research-record research-record-finding">
+          <div class="record-header">
+            <span class="record-type-badge">{{ f.status }}</span>
+            <span class="record-confidence">{{ f.supporting_evidence_count }} evidence items</span>
+          </div>
+          <p class="record-statement" style="font-weight:500;margin-bottom:0.25rem;">{{ f.title }}</p>
+          <p class="record-statement" style="font-size:0.82rem;color:var(--text-secondary,#b2afa8);margin-top:0;">{{ f.statement }}</p>
+          <div class="record-footer">
+            <span class="record-date">{{ (f.created_at|string)[:10] if f.created_at else '' }}</span>
+            <div class="record-actions">
+              <button class="record-action-btn danger"
+                      data-delete="/api/investigations/{{ inv_id }}/findings/{{ f.id }}/delete"
+                      data-delete-label="{{ f.title }}">Delete</button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="inv-empty">
+          <div class="inv-empty-icon">📌</div>
+          <div class="inv-empty-title">No findings yet.</div>
+          <div class="inv-empty-body">Record supported conclusions backed by evidence.</div>
+        </div>
+      {% endif %}
+
+      <!-- Add Finding -->
+      <button class="btn btn-ghost btn-sm" data-toggle-form="form-add-finding" style="margin-top:1rem;">+ Record Finding</button>
+      <form id="form-add-finding" class="inv-inline-form hidden">
+        <div class="inv-form-group">
+          <label class="inv-form-label">Title *</label>
+          <input name="title" class="inv-form-input" type="text" placeholder="Concise finding title" required>
+        </div>
+        <div class="inv-form-group">
+          <label class="inv-form-label">Statement *</label>
+          <textarea name="statement" class="inv-form-textarea" placeholder="Describe what was found and why it matters…" required></textarea>
+        </div>
+        <div class="inv-form-group">
+          <label class="inv-form-label">Status</label>
+          <select name="status" class="inv-form-select">
+            {% for fs in finding_statuses %}
+            <option value="{{ fs }}">{{ fs.replace('_', ' ') }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="inv-form-actions">
+          <button type="submit" class="btn btn-primary btn-sm">Record Finding</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-toggle-form="form-add-finding">Cancel</button>
+        </div>
+      </form>
+
+    </div>
+
+    <!-- ══ TAB: NOTES ════════════════════════════════════════════ -->
+    <div class="inv-tab-panel {% if active_tab == 'notes' %}active{% endif %}" data-tab="notes">
+
+      {% if workspace.notes %}
+        {% for note in workspace.notes %}
+        <div class="research-record research-record-note">
+          <div class="record-header">
+            <span class="record-type-badge">{{ note.note_type }}</span>
+          </div>
+          {% if note.title %}
+          <p class="record-statement" style="font-weight:500;margin-bottom:0.25rem;">{{ note.title }}</p>
+          {% endif %}
+          <p class="record-statement" style="font-size:0.85rem;color:#c0bdb8;">{{ note.content }}</p>
+          <div class="record-footer">
+            <span class="record-date">{{ (note.created_at|string)[:10] if note.created_at else '' }}</span>
+            <div class="record-actions">
+              <button class="record-action-btn danger"
+                      data-delete="/api/investigations/{{ inv_id }}/notes/{{ note.id }}/delete"
+                      data-delete-label="this note">Delete</button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="inv-empty">
+          <div class="inv-empty-icon">📝</div>
+          <div class="inv-empty-title">No notes yet.</div>
+          <div class="inv-empty-body">Capture thoughts, observations, and reminders as you research.</div>
+        </div>
+      {% endif %}
+
+      <!-- Add Note -->
+      <button class="btn btn-ghost btn-sm" data-toggle-form="form-add-note" style="margin-top:1rem;">+ Add Note</button>
+      <form id="form-add-note" class="inv-inline-form hidden">
+        <div class="inv-form-group">
+          <label class="inv-form-label">Title (optional)</label>
+          <input name="title" class="inv-form-input" type="text" placeholder="Optional note title">
+        </div>
+        <div class="inv-form-group">
+          <label class="inv-form-label">Content *</label>
+          <textarea name="content" class="inv-form-textarea" rows="3" placeholder="Your note…" required></textarea>
+        </div>
+        <div class="inv-form-group">
+          <label class="inv-form-label">Type</label>
+          <select name="note_type" class="inv-form-select">
+            <option value="GENERAL">General</option>
+            <option value="HYPOTHESIS">Hypothesis</option>
+            <option value="OBSERVATION">Observation</option>
+            <option value="REMINDER">Reminder</option>
+            <option value="REFLECTION">Reflection</option>
+          </select>
+        </div>
+        <div class="inv-form-actions">
+          <button type="submit" class="btn btn-primary btn-sm">Add Note</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-toggle-form="form-add-note">Cancel</button>
+        </div>
+      </form>
+
+    </div>
+
+    <!-- ══ TAB: ACTIVITY ══════════════════════════════════════════ -->
+    <div class="inv-tab-panel {% if active_tab == 'activity' %}active{% endif %}" data-tab="activity">
+
+      {% if workspace.activities %}
+      <div class="activity-timeline">
+        {% for act in workspace.activities %}
+        <div class="activity-item">
+          <div class="activity-dot"></div>
+          <div class="activity-body">
+            <div class="activity-desc">
+              <strong>{{ act.activity_type.replace('_', ' ').title() }}</strong>
+              {% if act.description %} — {{ act.description }}{% endif %}
+            </div>
+            <div class="activity-time">{{ ((act.created_at|string)[:16]).replace('T', ' ') if act.created_at else '' }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div class="inv-empty">
+          <div class="inv-empty-icon">📋</div>
+          <div class="inv-empty-title">No activity logged yet.</div>
+          <div class="inv-empty-body">All changes to this investigation will appear here.</div>
+        </div>
+      {% endif %}
+
+    </div>
+
+  </div><!-- /inv-content -->
+
+  <!-- ── RIGHT SIDEBAR PANEL ───────────────────────────────────── -->
+  <aside class="inv-sidebar-panel">
+
+    <!-- Status card -->
+    <div class="inv-panel-card">
+      <div class="inv-panel-label">Status</div>
+      <span class="inv-status-badge status-{{ inv.status }}" style="font-size:0.78rem;padding:0.3rem 0.75rem;">{{ inv.status }}</span>
+      {% if inv.description %}
+      <p style="font-size:0.78rem;color:var(--text-secondary,#b2afa8);margin:0.75rem 0 0;line-height:1.4;">{{ inv.description[:180] }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Quick stats -->
+    <div class="inv-panel-card">
+      <div class="inv-panel-label">Summary</div>
+      <div class="inv-panel-stat-row">
+        <span class="inv-panel-stat-key">Sources</span>
+        <span class="inv-panel-stat-val">{{ stats.source_count }}</span>
+      </div>
+      <div class="inv-panel-stat-row">
+        <span class="inv-panel-stat-key">Evidence</span>
+        <span class="inv-panel-stat-val">{{ stats.evidence_count }}</span>
+      </div>
+      <div class="inv-panel-stat-row">
+        <span class="inv-panel-stat-key">Open Questions</span>
+        <span class="inv-panel-stat-val">{{ stats.open_questions_count }}</span>
+      </div>
+      <div class="inv-panel-stat-row">
+        <span class="inv-panel-stat-key">Findings</span>
+        <span class="inv-panel-stat-val">{{ stats.findings_count }}</span>
+      </div>
+      <div class="inv-panel-stat-row">
+        <span class="inv-panel-stat-key">Concepts</span>
+        <span class="inv-panel-stat-val">{{ stats.concept_count }}</span>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="inv-panel-card">
+      <div class="inv-panel-label">Quick Actions</div>
+      <div class="inv-quick-actions">
+        <button class="inv-quick-btn" data-toggle-form="form-add-evidence" onclick="document.querySelector('[data-tab=evidence]').click();">+ Record Evidence</button>
+        <button class="inv-quick-btn" data-toggle-form="form-add-question" onclick="document.querySelector('[data-tab=questions]').click();">+ Add Question</button>
+        <button class="inv-quick-btn" data-toggle-form="form-add-finding" onclick="document.querySelector('[data-tab=findings]').click();">+ Record Finding</button>
+        <button class="inv-quick-btn" data-toggle-form="form-add-note" onclick="document.querySelector('[data-tab=notes]').click();">+ Add Note</button>
+      </div>
+    </div>
+
+    <!-- Gaps summary -->
+    {% if workspace.gaps %}
+    <div class="inv-panel-card">
+      <div class="inv-panel-label">Research Gaps</div>
+      {% for gap in workspace.gaps[:3] %}
+      <div class="gap-card severity-{{ gap.severity }}" style="padding:0.6rem 0.75rem;margin-bottom:0.35rem;">
+        <div class="gap-title" style="font-size:0.75rem;">{{ gap.description[:80] }}</div>
+      </div>
+      {% endfor %}
+      {% if workspace.gaps|length > 3 %}
+      <p style="font-size:0.7rem;color:var(--text-secondary,#b2afa8);margin-top:0.35rem;">+{{ workspace.gaps|length - 3 }} more gaps</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Graph link -->
+    <a href="/api/investigations/{{ inv_id }}/graph" class="inv-quick-btn" style="display:block;text-align:center;text-decoration:none;margin-top:0.5rem;" target="_blank">
+      Investigation Graph →
+    </a>
+
+  </aside>
+
+</div><!-- /inv-workspace -->
+
+<script src="{{ url_for('static', filename='js/investigation.js') }}"></script>
+<script>
+function filterSourcesTriage(type, btn) {
+  document.querySelectorAll('.triage-btn').forEach(b => {
+    b.classList.remove('btn-secondary', 'active');
+    b.classList.add('btn-ghost');
+  });
+  btn.classList.remove('btn-ghost');
+  btn.classList.add('btn-secondary', 'active');
+
+  const rows = document.querySelectorAll('.inv-source-row');
+  rows.forEach(row => {
+    const rowType = row.getAttribute('data-rel-type');
+    if (type === 'all' || rowType === type) {
+      row.style.display = 'flex';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+
+function loadInvestigationTensions() {
+  const invId = '{{ inv_id }}';
+  const container = document.getElementById('inv-tensions-container');
+  if (!container || !invId) return;
+
+  fetch(`/api/investigations/${invId}/tensions`)
+    .then(r => r.json())
+    .then(data => {
+      const tensions = data.tensions || [];
+      if (!tensions.length) return;
+
+      container.style.display = 'block';
+      let html = '<div class="t-label mb-2" style="color:#c87c22;">Research Tensions Detected (' + tensions.length + ')</div>';
+      tensions.forEach(t => {
+        html += `
+          <div class="surface p-4 mb-2" style="border-left:3px solid #c87c22; border-radius:3px; background:rgba(200,124,34,0.06);">
+            <div style="font-weight:500; font-size:0.88rem; color:#e2e0db; margin-bottom:0.25rem;">
+              Research Tension: ${escapeHtml(t.finding_title)}
+            </div>
+            <p style="font-size:0.8rem; color:var(--text-secondary,#b2afa8); line-height:1.4; margin-bottom:0.5rem;">
+              ${escapeHtml(t.description)}
+            </p>
+            ${t.evidence_items && t.evidence_items.length ? `
+              <div style="font-size:0.75rem; color:var(--text-secondary,#b2afa8);">
+                <div style="font-weight:500; margin-bottom:0.2rem;">Conflicting Evidence:</div>
+                ${t.evidence_items.map(ev => `<div style="padding:0.2rem 0; font-style:italic;">"${escapeHtml(ev.statement)}"</div>`).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    })
+    .catch(() => {});
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadInvestigationTensions();
+  // Also register active context
+  fetch('/api/context', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({investigation_id: '{{ inv_id }}'})
+  }).catch(() => {});
+});
+</script>
+{% endblock %}

@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="overview-workspace">
+
+  <!-- ── ORVIA BRAND & TAGLINE ──────────────────────────────────────────────── -->
+  <div class="overview-brand-meta">
+    <span class="overview-brand-title">ORVIA</span>
+    <span class="overview-brand-tagline">Explore Information. Discover What Connects.</span>
+  </div>
+  <hr class="overview-divider">
+
+  <!-- ── HEADLINE QUESTION ─────────────────────────────────────────────────── -->
+  <h1 class="overview-question-heading">What are you trying to understand?</h1>
+
+  <!-- ── PROMINENT SEARCH INPUT (Ctrl+K trigger) ──────────────────────────── -->
+  <div class="overview-search-box" id="overview-search-trigger" onclick="document.getElementById('cmd-search-trigger').click();" role="button" tabindex="0" aria-label="Search your knowledge" onkeydown="if(event.key==='Enter'){document.getElementById('cmd-search-trigger').click();}">
+    <div class="overview-search-placeholder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <span>Search your knowledge...</span>
+    </div>
+    <kbd class="overview-search-kbd">Ctrl K</kbd>
+  </div>
+
+  <!-- ── ACTION BUTTON GROUP ───────────────────────────────────────────────── -->
+  <div class="overview-actions-row">
+    <a href="{{ url_for('investigations') }}" class="btn btn-primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      New Investigation
+    </a>
+    <a href="{{ url_for('sources') }}" class="btn btn-secondary">Add Source</a>
+    <a href="{{ url_for('explore') }}" class="btn btn-secondary">Explore</a>
+    <a href="{{ url_for('knowledge') }}" class="btn btn-secondary">Knowledge</a>
+    <a href="/timeline" class="btn btn-secondary">Timeline</a>
+  </div>
+
+  <!-- ── ONBOARDING: shown only when collection is completely empty ─────────── -->
+  {% if stats.sources == 0 and stats.investigations == 0 %}
+  <div class="overview-onboarding" id="overview-onboarding" style="background:var(--bg-surface); border:1px solid var(--border-default); border-radius:6px; padding:1.5rem; margin-top:1.5rem; margin-bottom:1.5rem;">
+    <div class="onboarding-header" style="margin-bottom:1.25rem;">
+      <div class="t-label t-accent" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em;">Getting Started</div>
+      <div class="t-h3 mt-1" style="font-size:1.15rem; font-weight:400; color:var(--text-primary);">Build your research knowledge base in 3 steps</div>
+    </div>
+    <div class="onboarding-steps" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">
+      <div class="onboarding-step" style="background:var(--bg-base); padding:1rem; border-radius:4px; border:1px solid var(--border-default);">
+        <div style="font-size:1.4rem; font-weight:300; color:var(--accent); margin-bottom:0.4rem;">01</div>
+        <div class="t-primary font-medium" style="font-size:0.9rem; margin-bottom:0.25rem;">Add Sources</div>
+        <p class="t-secondary" style="font-size:0.78rem; line-height:1.5; margin-bottom:0.75rem;">Import documents, articles, PDFs, or paste notes. ORVIA indexes and extracts concepts automatically.</p>
+        <a href="{{ url_for('sources') }}" class="btn btn-primary btn-sm">Add First Source</a>
+      </div>
+      <div class="onboarding-step" style="background:var(--bg-base); padding:1rem; border-radius:4px; border:1px solid var(--border-default);">
+        <div style="font-size:1.4rem; font-weight:300; color:var(--text-primary); margin-bottom:0.4rem;">02</div>
+        <div class="t-primary font-medium" style="font-size:0.9rem; margin-bottom:0.25rem;">Start Investigation</div>
+        <p class="t-secondary" style="font-size:0.78rem; line-height:1.5; margin-bottom:0.75rem;">Define a research question. Attach sources, record evidence, link findings, and track open questions.</p>
+        <a href="{{ url_for('investigations') }}" class="btn btn-secondary btn-sm">Create Investigation</a>
+      </div>
+      <div class="onboarding-step" style="background:var(--bg-base); padding:1rem; border-radius:4px; border:1px solid var(--border-default);">
+        <div style="font-size:1.4rem; font-weight:300; color:var(--text-muted); margin-bottom:0.4rem;">03</div>
+        <div class="t-primary font-medium" style="font-size:0.9rem; margin-bottom:0.25rem;">Discover Connections</div>
+        <p class="t-secondary" style="font-size:0.78rem; line-height:1.5; margin-bottom:0.75rem;">Explore how concepts relate in the knowledge graph. When ready, assemble an evidence-backed report.</p>
+        <a href="{{ url_for('knowledge') }}" class="btn btn-secondary btn-sm">Explore Knowledge Graph</a>
+      </div>
+    </div>
+    <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--border-default); display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+      <span class="t-secondary" style="font-size:0.8rem;">Want to explore with sample data?</span>
+      <button class="btn btn-secondary btn-sm" onclick="loadDemoDataset(this)">Load Demo Dataset</button>
+      <span class="t-muted" style="font-size:0.72rem;">(Clearly labeled demo records — removable any time from Settings)</span>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── 4 KEY METRICS (Honest numbers — 0 when empty) ─────────────────────── -->
+  <div class="overview-metrics-matrix stat-grid">
+    <div class="metric-cell">
+      <div class="metric-number">{{ stats.sources }}</div>
+      <div class="metric-caption">Sources</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-number">{{ stats.concepts }}</div>
+      <div class="metric-caption">Concepts</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-number">{{ stats.topics }}</div>
+      <div class="metric-caption">Topics</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-number">{{ stats.investigations }}</div>
+      <div class="metric-caption">Investigations</div>
+    </div>
+  </div>
+
+  <!-- ── CONTINUE RESEARCH ──────────────────────────────────────────────────── -->
+  <div id="continue-research-section" style="display:none; margin-top: 1.5rem; margin-bottom: 0.5rem;">
+    <div class="flex items-center justify-between mb-3">
+      <div class="t-label t-accent">Continue Research</div>
+      <a href="{{ url_for('investigations') }}" class="section-action">All investigations →</a>
+    </div>
+    <div id="continue-research-items" class="overview-continue-list"></div>
+  </div>
+
+  <!-- ── QUAD SECTION GRID ──────────────────────────────────────────────────── -->
+  <div class="overview-quad-grid">
+
+    <!-- 1. ACTIVE INVESTIGATIONS -->
+    <div class="quad-section">
+      <div class="quad-header">
+        <span>Active Investigations</span>
+        <span class="sr-only">Research Investigations</span>
+        <a href="{{ url_for('investigations') }}" class="section-action">View all →</a>
+      </div>
+
+      {% if recent_investigations %}
+        {% for inv in recent_investigations %}
+        <a href="{{ url_for('investigation_detail', inv_id=inv.id) }}" class="card-editorial mb-3" style="display: block; text-decoration: none;">
+          <div class="card-title">{{ inv.title }}</div>
+          <div class="card-quote">"{{ inv.research_question }}"</div>
+          <div class="card-meta">
+            <span class="status-dot active"></span>
+            <span>{{ inv.status|capitalize }} Investigation</span>
+          </div>
+        </a>
+        {% endfor %}
+      {% else %}
+        <div style="background:var(--bg-surface); padding:var(--sp-4); border:1px solid var(--border-default); border-radius:var(--radius-md);">
+          <p class="t-secondary mb-2" style="font-size:0.85rem;">No active investigations yet.</p>
+          <a href="{{ url_for('investigations') }}" class="btn btn-secondary btn-sm">Start an Investigation</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- 2. RECENT RESEARCH ACTIVITY -->
+    <div class="quad-section">
+      <div class="quad-header">
+        <span>Recent Research Activity</span>
+        <a href="/timeline" class="section-action">Timeline →</a>
+      </div>
+      <div id="recent-activity-list">
+        <div class="activity-card">
+          <div class="t-muted" style="font-size:0.8rem;">Loading activity…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. RECENTLY DISCOVERED -->
+    <div class="quad-section">
+      <div class="quad-header">
+        <span>Recently Discovered</span>
+        <a href="{{ url_for('concepts_page') }}" class="section-action">View all →</a>
+      </div>
+
+      {% if concept_summary and concept_summary.recently_detected %}
+        {% for c in concept_summary.recently_detected[:3] %}
+        <a href="{{ url_for('concept_detail', concept_id=c.id) }}" class="discovered-row" style="text-decoration: none; display: block;">
+          <div class="discovered-title hover-accent">{{ c.name.title() }}</div>
+          <div class="discovered-meta">Observed in {{ c.source_count }} source{{ 's' if c.source_count != 1 else '' }}</div>
+        </a>
+        {% endfor %}
+      {% else %}
+        <div style="background:var(--bg-surface); padding:var(--sp-4); border:1px solid var(--border-default); border-radius:var(--radius-md);">
+          <p class="t-secondary mb-2" style="font-size:0.85rem;">No concepts detected yet. Add sources to build your concept collection.</p>
+          <a href="{{ url_for('sources') }}" class="btn btn-secondary btn-sm">Add a Source</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- 4. KNOWLEDGE CONNECTIONS -->
+    <div class="quad-section">
+      <div class="quad-header">
+        <span>Knowledge Connections</span>
+        <a href="{{ url_for('knowledge') }}" class="section-action">Explore Graph →</a>
+      </div>
+
+      {% if graph_stats and graph_stats.total_concepts > 0 %}
+        <div class="card-editorial" style="background: var(--bg-surface); padding: var(--sp-4); border: 1px solid var(--border-default); border-radius: var(--radius-md);">
+          <div class="t-primary font-medium mb-1" style="font-size: var(--text-sm);">
+            Your collection contains {{ graph_stats.total_concepts }} concepts connected through {{ graph_stats.total_relationships }} observed relationships.
+          </div>
+          <p class="t-secondary mb-3" style="font-size: var(--text-xs);">
+            Average degree {{ graph_stats.average_degree }} across {{ graph_stats.total_sources }} research sources.
+          </p>
+          <a href="{{ url_for('knowledge') }}" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: center;">
+            Explore Knowledge Graph
+          </a>
+        </div>
+      {% else %}
+        <div style="background:var(--bg-surface); padding:var(--sp-4); border:1px solid var(--border-default); border-radius:var(--radius-md);">
+          <p class="t-secondary mb-2" style="font-size:0.85rem;">No knowledge connections yet. Import sources with shared concepts to see how they relate.</p>
+          <a href="{{ url_for('sources') }}" class="btn btn-secondary btn-sm">Add Sources</a>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- ── OBSERVED PATTERNS (Phase 9) ──────────────────────────────────────── -->
+  {% if observed_patterns %}
+  <div style="margin-top: 2rem; margin-bottom: 1.5rem;">
+    <div class="flex items-center justify-between mb-3">
+      <div class="t-label t-accent">Observed Patterns</div>
+      <a href="{{ url_for('analyze') }}?tab=patterns" class="section-action">Explore all patterns →</a>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+      {% for pat in observed_patterns %}
+      <div class="surface p-4" style="border-left: 3px solid var(--accent); border-radius: 4px;">
+        <div class="t-label mb-1" style="font-size: 0.65rem;">{{ pat.pattern_type.replace('_', ' ') }}</div>
+        <div class="t-primary font-medium mb-1" style="font-size: 0.88rem;">{{ pat.title }}</div>
+        <p class="t-secondary mb-0" style="font-size: 0.78rem; line-height: 1.4;">{{ pat.description }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function loadRecentActivity() {
+  const container = document.getElementById('recent-activity-list');
+  if (!container) return;
+  fetch('/api/recent-activity?limit=5')
+    .then(r => r.json())
+    .then(data => {
+      const acts = data.activities || [];
+      if (acts.length === 0) {
+        container.innerHTML = '<div class="activity-card"><div class="t-muted" style="font-size:0.8rem;">No activity recorded yet. Start by importing a source or creating an investigation.</div></div>';
+        return;
+      }
+      const html = acts.map(a => {
+        const time = a.created_at ? new Date(a.created_at).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
+        return `<div class="activity-row"><span class="activity-time">${time}</span><span class="activity-desc">${escHtml(a.title)}</span></div>`;
+      }).join('');
+      container.innerHTML = `<div class="activity-card">${html}</div>`;
+    })
+    .catch(() => {
+      container.innerHTML = '<div class="activity-card"><div class="t-muted" style="font-size:0.8rem;">Could not load activity.</div></div>';
+    });
+}
+
+function loadContinueResearch() {
+  fetch('/api/continue-research')
+    .then(r => r.json())
+    .then(data => {
+      const section = document.getElementById('continue-research-section');
+      const container = document.getElementById('continue-research-items');
+      const invs = data.active_investigations || [];
+      if (invs.length === 0 || !section || !container) return;
+      section.style.display = 'block';
+      container.innerHTML = invs.map(inv => {
+        const qs = inv.open_questions > 0 ? `<span class="badge badge-default" style="margin-left:0.5rem;">${inv.open_questions} open question${inv.open_questions!==1?'s':''}</span>` : '';
+        return `<a href="${escHtml(inv.url)}" class="overview-continue-item" style="display:flex;align-items:baseline;gap:0.75rem;padding:0.6rem 0;border-bottom:1px solid var(--border-default);text-decoration:none;">
+          <span class="t-primary" style="font-size:0.9rem;flex:1;">${escHtml(inv.title)}</span>
+          ${qs}
+          <span class="btn btn-secondary btn-sm">Continue</span>
+        </a>`;
+      }).join('');
+    })
+    .catch(() => {});
+}
+
+function loadDemoDataset(btn) {
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  fetch('/api/demo/load', {method: 'POST'})
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        window.location.reload();
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Load Demo Dataset';
+        alert('Error loading demo data: ' + (data.error || 'unknown error'));
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.textContent = 'Load Demo Dataset';
+    });
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadRecentActivity();
+  loadContinueResearch();
+});
+</script>
+{% endblock %}

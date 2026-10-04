@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/investigation.css') }}">
+{% endblock %}
+{% block content %}
+
+<div class="inv-new-page">
+
+  <!-- Back link -->
+  <a href="{{ url_for('investigations') }}" class="t-secondary t-sm" style="display:inline-flex;align-items:center;gap:0.35rem;margin-bottom:2rem;text-decoration:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    Back to Investigations
+  </a>
+
+  <p class="inv-new-label">New Investigation</p>
+  <h1 class="inv-new-heading">Start Your Research</h1>
+
+  <div id="form-flash"></div>
+
+  <form id="form-new-investigation" autocomplete="off">
+    <!-- Title -->
+    <div class="inv-form-group" style="margin-bottom:2rem;">
+      <label class="inv-form-label" for="inv-title">Investigation Title</label>
+      <input id="inv-title" class="inv-new-input-large" name="title" type="text"
+             placeholder="What are you investigating?" required autofocus>
+    </div>
+
+    <!-- Research Question -->
+    <div class="inv-form-group" style="margin-bottom:2rem;">
+      <label class="inv-form-label" for="inv-question">Research Question</label>
+      <textarea id="inv-question" class="inv-new-textarea-large" name="research_question" rows="2"
+                placeholder="What specific question are you trying to answer?" required></textarea>
+    </div>
+
+    <!-- Description (optional) -->
+    <div class="inv-form-group" style="margin-bottom:2rem;">
+      <label class="inv-form-label" for="inv-description">Description <span style="color:#5f5e5b;">(optional)</span></label>
+      <textarea id="inv-description" class="inv-new-textarea-large" name="description" rows="2"
+                placeholder="Briefly describe your investigation scope, context, or approach…"></textarea>
+    </div>
+
+    <!-- Initial Status -->
+    <div class="inv-form-group" style="margin-bottom:2.5rem;">
+      <label class="inv-form-label" for="inv-status">Initial Status</label>
+      <select id="inv-status" class="inv-form-select" name="status" style="max-width:220px;">
+        <option value="active" selected>Active — start immediately</option>
+        <option value="draft">Draft — save for later</option>
+      </select>
+    </div>
+
+    <!-- Submit -->
+    <div style="display:flex;gap:0.85rem;align-items:center;">
+      <button type="submit" class="btn btn-primary">Start Investigation →</button>
+      <a href="{{ url_for('investigations') }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/investigation.js') }}"></script>
+{% endblock %}

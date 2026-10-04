@@ -1,0 +1,587 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}">
+
+<div class="analytics-container">
+
+  <!-- ── HEADER ─────────────────────────────────────────────────────────── -->
+  <header class="analytics-header">
+    <div class="analytics-title-group">
+      <div class="t-label t-accent mb-1">Research Intelligence</div>
+      <h1>Analyze & Synthesize</h1>
+      <p class="analytics-subtitle">
+        Empirical metrics, chronological trends, and structural patterns across your research collection.
+      </p>
+    </div>
+
+    <!-- Time range filter -->
+    <div class="time-filter-group" role="group" aria-label="Time Filter">
+      <a href="?time_range=all&tab={{ active_tab }}" class="time-filter-btn {% if time_range == 'all' %}active{% endif %}">All Time</a>
+      <a href="?time_range=7d&tab={{ active_tab }}" class="time-filter-btn {% if time_range == '7d' %}active{% endif %}">Last 7d</a>
+      <a href="?time_range=30d&tab={{ active_tab }}" class="time-filter-btn {% if time_range == '30d' %}active{% endif %}">Last 30d</a>
+      <a href="?time_range=90d&tab={{ active_tab }}" class="time-filter-btn {% if time_range == '90d' %}active{% endif %}">Last 90d</a>
+    </div>
+  </header>
+
+  <!-- ── NAVIGATION TABS ────────────────────────────────────────────────── -->
+  <div class="analytics-nav-wrapper">
+    <nav class="analytics-nav" role="tablist" aria-label="Analytics Sections">
+      <button class="analytics-nav-tab {% if active_tab == 'overview' or not active_tab %}active{% endif %}" role="tab" aria-selected="{% if active_tab == 'overview' or not active_tab %}true{% else %}false{% endif %}" data-tab="overview">
+        Overview & Density
+      </button>
+      <button class="analytics-nav-tab {% if active_tab == 'patterns' %}active{% endif %}" role="tab" aria-selected="{% if active_tab == 'patterns' %}true{% else %}false{% endif %}" data-tab="patterns">
+        Observed Patterns ({{ analytics.patterns|length }})
+      </button>
+      <button class="analytics-nav-tab {% if active_tab == 'concepts' %}active{% endif %}" role="tab" aria-selected="{% if active_tab == 'concepts' %}true{% else %}false{% endif %}" data-tab="concepts">
+        Concept Patterns
+      </button>
+      <button class="analytics-nav-tab {% if active_tab == 'sources' %}active{% endif %}" role="tab" aria-selected="{% if active_tab == 'sources' %}true{% else %}false{% endif %}" data-tab="sources">
+        Source Patterns
+      </button>
+      <button class="analytics-nav-tab {% if active_tab == 'temporal' %}active{% endif %}" role="tab" aria-selected="{% if active_tab == 'temporal' %}true{% else %}false{% endif %}" data-tab="temporal">
+        Temporal Trends
+      </button>
+      <button class="analytics-nav-tab {% if active_tab == 'coverage' %}active{% endif %}" role="tab" aria-selected="{% if active_tab == 'coverage' %}true{% else %}false{% endif %}" data-tab="coverage">
+        Coverage & Gaps
+      </button>
+      <button class="analytics-nav-tab {% if active_tab == 'comparisons' %}active{% endif %}" role="tab" aria-selected="{% if active_tab == 'comparisons' %}true{% else %}false{% endif %}" data-tab="comparisons">
+        Research Comparisons
+      </button>
+    </nav>
+  </div>
+
+  <!-- ══ TAB 1: OVERVIEW & DENSITY ═════════════════════════════════════════ -->
+  <div class="analytics-tab-panel {% if active_tab == 'overview' or not active_tab %}active{% endif %}" data-tab="overview">
+    
+    <div class="snapshot-section">
+      <div class="section-label">
+        <span>Collection Totals</span>
+        <span style="font-size:0.65rem;color:var(--text-muted);">(Calculated from current collection)</span>
+      </div>
+      <div class="snapshot-grid">
+        <div class="snapshot-card">
+          <div class="snapshot-val num-cell">{{ analytics.snapshot.total_sources }}</div>
+          <div class="snapshot-key">Sources Ingested</div>
+        </div>
+        <div class="snapshot-card">
+          <div class="snapshot-val num-cell">{{ analytics.snapshot.total_concepts }}</div>
+          <div class="snapshot-key">Concepts Detected</div>
+        </div>
+        <div class="snapshot-card">
+          <div class="snapshot-val num-cell">{{ analytics.snapshot.total_evidence }}</div>
+          <div class="snapshot-key">Evidence Records</div>
+        </div>
+        <div class="snapshot-card">
+          <div class="snapshot-val num-cell">{{ analytics.snapshot.total_investigations }}</div>
+          <div class="snapshot-key">Investigations</div>
+        </div>
+      </div>
+
+      <!-- Density Indicators -->
+      <div class="section-label" style="margin-top:1.5rem;">Calculated Collection Densities</div>
+      <div class="density-row">
+        <div class="density-card">
+          <div class="density-val num-cell">{{ analytics.snapshot.avg_concepts_per_source }}</div>
+          <div class="density-label">Average concepts per source</div>
+        </div>
+        <div class="density-card">
+          <div class="density-val num-cell">{{ analytics.snapshot.avg_concepts_per_investigation }}</div>
+          <div class="density-label">Average concepts per investigation</div>
+        </div>
+        <div class="density-card">
+          <div class="density-val num-cell">{{ analytics.snapshot.avg_evidence_per_investigation }}</div>
+          <div class="density-label">Average evidence items per investigation</div>
+        </div>
+        <div class="density-card">
+          <div class="density-val num-cell">{{ analytics.snapshot.avg_sources_per_investigation }}</div>
+          <div class="density-label">Average sources per investigation</div>
+        </div>
+        <div class="density-card">
+          <div class="density-val num-cell">{{ analytics.snapshot.avg_relationships_per_concept }}</div>
+          <div class="density-label">Average relationships per concept</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Patterns Highlights -->
+    <div style="margin-top:2.5rem;">
+      <div class="section-label">Observed Pattern Highlights</div>
+      {% if analytics.patterns %}
+      <div class="patterns-grid">
+        {% for pat in analytics.patterns[:4] %}
+        <div class="pattern-card">
+          <div>
+            <div class="pattern-type-tag">{{ pat.pattern_type.replace('_', ' ') }}</div>
+            <div class="pattern-title">{{ pat.title }}</div>
+            <div class="pattern-desc">{{ pat.description }}</div>
+            <div class="pattern-calc-box">
+              <strong>Calculation:</strong> {{ pat.calculation_formula }}<br>
+              <strong>Evidence:</strong> {{ pat.evidence_summary }}
+            </div>
+          </div>
+          <div class="pattern-footer">
+            <span>{{ pat.calculated_at[:10] }}</span>
+            {% if pat.concept_ids %}
+            <a href="{{ url_for('knowledge') }}?mode=focus&focus={{ pat.concept_ids[0] }}" class="pattern-link">Explore in Graph →</a>
+            {% elif pat.source_ids %}
+            <a href="{{ url_for('source_detail', source_id=pat.source_ids[0]) }}" class="pattern-link">Open Source →</a>
+            {% elif pat.investigation_ids %}
+            <a href="{{ url_for('investigation_detail', inv_id=pat.investigation_ids[0]) }}" class="pattern-link">Open Investigation →</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="p-6 surface t-secondary" style="border-radius:4px;font-size:0.85rem;">
+        No structural patterns detected yet. Ingest sources and record evidence to generate analytical observations.
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- ══ TAB 2: OBSERVED PATTERNS ══════════════════════════════════════════ -->
+  <div class="analytics-tab-panel {% if active_tab == 'patterns' %}active{% endif %}" data-tab="patterns">
+    <div class="section-label">All Detected Patterns</div>
+    {% if analytics.patterns %}
+    <div class="patterns-grid">
+      {% for pat in analytics.patterns %}
+      <div class="pattern-card">
+        <div>
+          <div class="pattern-type-tag">{{ pat.pattern_type.replace('_', ' ') }}</div>
+          <div class="pattern-title">{{ pat.title }}</div>
+          <div class="pattern-desc">{{ pat.description }}</div>
+          <div class="pattern-calc-box">
+            <strong>Formula:</strong> {{ pat.calculation_formula }}<br>
+            <strong>Underlying Evidence:</strong> {{ pat.evidence_summary }}
+          </div>
+        </div>
+        <div class="pattern-footer">
+          <span>Observed: {{ pat.calculated_at[:16].replace('T', ' ') }}</span>
+          {% if pat.concept_ids %}
+          <a href="{{ url_for('knowledge') }}?mode=focus&focus={{ pat.concept_ids[0] }}" class="pattern-link">Explore Graph →</a>
+          {% elif pat.source_ids %}
+          <a href="{{ url_for('source_detail', source_id=pat.source_ids[0]) }}" class="pattern-link">Open Source →</a>
+          {% elif pat.investigation_ids %}
+          <a href="{{ url_for('investigation_detail', inv_id=pat.investigation_ids[0]) }}" class="pattern-link">Open Investigation →</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-8 surface t-secondary text-center" style="border-radius:4px;">
+      Insufficient data to detect patterns. Ingest more documents and record findings.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══ TAB 3: CONCEPT PATTERNS ═══════════════════════════════════════════ -->
+  <div class="analytics-tab-panel {% if active_tab == 'concepts' %}active{% endif %}" data-tab="concepts">
+    <div class="section-label">Concept Observation Distribution & Trends</div>
+    {% if analytics.concepts %}
+    <div class="table-container">
+      <table class="analytics-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th class="num-cell">Occurrences</th>
+            <th class="num-cell">Sources</th>
+            <th class="num-cell">Coverage</th>
+            <th class="num-cell">Connections</th>
+            <th class="num-cell">Max In 1 Source</th>
+            <th>Trend Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cpt in analytics.concepts %}
+          <tr>
+            <td style="font-weight:500;">{{ cpt.name }}</td>
+            <td class="num-cell">{{ cpt.total_occurrences }}</td>
+            <td class="num-cell">{{ cpt.source_count }}</td>
+            <td class="num-cell">{{ cpt.coverage_pct }}%</td>
+            <td class="num-cell">{{ cpt.connection_count }}</td>
+            <td class="num-cell">{{ cpt.max_occurrences_in_single_source }}</td>
+            <td>
+              <span class="trend-badge trend-{{ cpt.trend_status.replace(' ', '-') }}">
+                {{ cpt.trend_status }}
+              </span>
+              <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.2rem;">
+                {{ cpt.trend_description }}
+              </div>
+            </td>
+            <td>
+              <a href="{{ url_for('knowledge') }}?mode=focus&focus={{ cpt.concept_id }}" class="pattern-link" style="font-size:0.75rem;">
+                Graph →
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-8 surface t-secondary text-center" style="border-radius:4px;">
+      No concepts detected in current collection.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══ TAB 4: SOURCE PATTERNS ════════════════════════════════════════════ -->
+  <div class="analytics-tab-panel {% if active_tab == 'sources' %}active{% endif %}" data-tab="sources">
+    <div class="section-label">Source Concept Diversity & Evidence Densities</div>
+    {% if analytics.sources %}
+    <div class="table-container">
+      <table class="analytics-table">
+        <thead>
+          <tr>
+            <th>Document Title</th>
+            <th>Type</th>
+            <th class="num-cell">Word Count</th>
+            <th class="num-cell">Concept Diversity</th>
+            <th class="num-cell">Density (per 1k words)</th>
+            <th class="num-cell">Evidence Records</th>
+            <th class="num-cell">Investigations</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for src in analytics.sources %}
+          <tr>
+            <td style="font-weight:500;">
+              <a href="{{ url_for('source_detail', source_id=src.source_id) }}" style="color:var(--text-primary);text-decoration:none;">
+                {{ src.title }}
+              </a>
+            </td>
+            <td><span class="t-secondary" style="font-size:0.75rem;">{{ src.file_type }}</span></td>
+            <td class="num-cell">{{ src.word_count }}</td>
+            <td class="num-cell" style="color:var(--accent);">{{ src.concept_count }}</td>
+            <td class="num-cell">{{ src.concept_density }}</td>
+            <td class="num-cell">{{ src.evidence_count }}</td>
+            <td class="num-cell">{{ src.investigation_count }}</td>
+            <td>
+              <a href="{{ url_for('source_detail', source_id=src.source_id) }}" class="pattern-link" style="font-size:0.75rem;">
+                Open →
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-8 surface t-secondary text-center" style="border-radius:4px;">
+      No sources ingested yet.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══ TAB 5: TEMPORAL TRENDS ════════════════════════════════════════════ -->
+  <div class="analytics-tab-panel {% if active_tab == 'temporal' %}active{% endif %}" data-tab="temporal">
+    <div class="section-label">Chronological Research Activity</div>
+    
+    <div class="chart-box">
+      <div style="font-size:0.95rem;font-weight:500;color:var(--text-primary);margin-bottom:0.35rem;">
+        Event Timeline Across Collection
+      </div>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 1.5rem 0;">
+        {{ analytics.temporal.summary }}
+      </p>
+
+      {% if analytics.temporal.data_points %}
+      <!-- SVG Bar Chart -->
+      <svg class="svg-chart" viewBox="0 0 800 200" preserveAspectRatio="none" role="img" aria-label="Timeline of added sources and recorded evidence">
+        <!-- Axes -->
+        <line x1="40" y1="170" x2="780" y2="170" class="svg-axis" />
+        <line x1="40" y1="20" x2="40" y2="170" class="svg-axis" />
+
+        {% set pts = analytics.temporal.data_points %}
+        {% set bar_w = 720 / (pts|length) %}
+        
+        {% for pt in pts %}
+        {% set x_pos = 50 + (loop.index0 * bar_w) %}
+        {% set bar_height = (pt.sources_added + pt.evidence_recorded + pt.investigations_created) * 15 %}
+        {% if bar_height > 140 %}{% set bar_height = 140 %}{% endif %}
+        {% if bar_height < 6 %}{% set bar_height = 6 %}{% endif %}
+        {% set y_pos = 170 - bar_height %}
+
+        <rect x="{{ x_pos }}" y="{{ y_pos }}" width="{{ [bar_w - 6, 8]|max }}" height="{{ bar_height }}" class="svg-bar" rx="2">
+          <title>{{ pt.period }}: {{ pt.sources_added }} sources, {{ pt.evidence_recorded }} evidence, {{ pt.investigations_created }} investigations</title>
+        </rect>
+        <text x="{{ x_pos }}" y="186" class="svg-axis-label">{{ pt.period[-5:] }}</text>
+        {% endfor %}
+      </svg>
+
+      <!-- Textual accessible breakdown -->
+      <div style="margin-top:1.5rem;font-size:0.75rem;color:var(--text-muted);">
+        <strong>Activity breakdown:</strong>
+        {% for pt in analytics.temporal.data_points[-5:] %}
+        <span>{{ pt.period }} ({{ pt.sources_added }} sources, {{ pt.evidence_recorded }} evidence)</span>{% if not loop.last %} · {% endif %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="p-6 t-secondary text-center" style="font-size:0.85rem;">
+        Insufficient chronological history. Additional time-based ingestions are required.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ══ TAB 6: COVERAGE & GAPS ════════════════════════════════════════════ -->
+  <div class="analytics-tab-panel {% if active_tab == 'coverage' %}active{% endif %}" data-tab="coverage">
+    <div class="section-label">Collection Breadth & Low-Coverage Areas</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;">
+      <!-- Single vs Multi Source Concepts -->
+      <div class="chart-box" style="margin-bottom:0;">
+        <div style="font-size:0.95rem;font-weight:500;color:var(--text-primary);margin-bottom:0.5rem;">Concept Distribution Breadth</div>
+        <div style="display:flex;gap:1rem;margin-bottom:1rem;font-size:0.8rem;">
+          <div>Multi-source: <strong style="color:var(--accent);">{{ analytics.coverage.multi_source_concepts_pct }}%</strong> ({{ analytics.coverage.multi_source_concepts_count }})</div>
+          <div>Single-source: <strong style="color:var(--text-muted);">{{ analytics.coverage.single_source_concepts_pct }}%</strong> ({{ analytics.coverage.single_source_concepts_count }})</div>
+        </div>
+        <div style="height:10px;background:rgba(255,255,255,0.06);border-radius:5px;overflow:hidden;display:flex;">
+          <div style="width:{{ analytics.coverage.multi_source_concepts_pct }}%;background:var(--accent);"></div>
+          <div style="width:{{ analytics.coverage.single_source_concepts_pct }}%;background:rgba(255,255,255,0.2);"></div>
+        </div>
+      </div>
+
+      <!-- Investigation Coverage States -->
+      <div class="chart-box" style="margin-bottom:0;">
+        <div style="font-size:0.95rem;font-weight:500;color:var(--text-primary);margin-bottom:0.5rem;">Investigation Support States</div>
+        {% if analytics.coverage.investigation_coverage %}
+        <div style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.78rem;">
+          {% for inv in analytics.coverage.investigation_coverage[:3] %}
+          <div style="display:flex;justify-content:space-between;padding:0.25rem 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+            <a href="{{ url_for('investigation_detail', inv_id=inv.id) }}" style="color:var(--text-primary);text-decoration:none;">{{ inv.title }}</a>
+            <span style="color:var(--accent);">{{ inv.coverage_label }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="t-secondary" style="font-size:0.8rem;">No investigations created yet.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Low Coverage Concepts Table -->
+    <div class="section-label">Concepts Appearing in Only 1 Source (Potential Breadth Gaps)</div>
+    <div class="table-container">
+      <table class="analytics-table">
+        <thead>
+          <tr>
+            <th>Concept Name</th>
+            <th class="num-cell">Occurrences</th>
+            <th class="num-cell">Containing Sources</th>
+            <th>Coverage Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in analytics.coverage.low_coverage_concepts[:10] %}
+          <tr>
+            <td>{{ c.name }}</td>
+            <td class="num-cell">{{ c.frequency }}</td>
+            <td class="num-cell">{{ c.source_count }}</td>
+            <td><span class="t-secondary" style="font-size:0.75rem;">Localized to single source</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Isolated Concepts Table -->
+    <div class="section-label">Isolated Concepts (Topological Connectivity &le; 1)</div>
+    <div class="table-container">
+      <table class="analytics-table">
+        <thead>
+          <tr>
+            <th>Concept Name</th>
+            <th class="num-cell">Observed Connections</th>
+            <th class="num-cell">Occurrences</th>
+            <th>Topology</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ic in analytics.coverage.isolated_concepts[:10] %}
+          <tr>
+            <td>{{ ic.name }}</td>
+            <td class="num-cell">{{ ic.connection_count }}</td>
+            <td class="num-cell">{{ ic.frequency }}</td>
+            <td><span class="t-secondary" style="font-size:0.75rem;">Low observed connectivity</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ TAB 7: RESEARCH COMPARATORS ═══════════════════════════════════════ -->
+  <div class="analytics-tab-panel {% if active_tab == 'comparisons' %}active{% endif %}" data-tab="comparisons">
+    
+    <!-- 1. Cross-Source Comparison (Required Test Assertion) -->
+    <div class="comparator-workbench">
+      <div class="t-label t-accent mb-1">Comparative Analysis</div>
+      <h3 class="t-h3 mb-2" style="font-size:1.25rem;">Cross-Source Comparison</h3>
+      <p class="t-secondary" style="font-size:0.82rem;margin-bottom:1.5rem;">
+        Compute exact Jaccard concept overlap across two documents to inspect shared entities and distinct areas.
+      </p>
+
+      <div class="comparator-controls">
+        <div>
+          <label class="section-label">Source A</label>
+          <select id="compare-src-a" class="select-control">
+            <option value="">— Select Source A —</option>
+            {% for s in all_sources %}
+            <option value="{{ s.id }}" {% if source_a_id == s.id %}selected{% endif %}>{{ s.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="comparator-vs">VS</div>
+
+        <div>
+          <label class="section-label">Source B</label>
+          <select id="compare-src-b" class="select-control">
+            <option value="">— Select Source B —</option>
+            {% for s in all_sources %}
+            <option value="{{ s.id }}" {% if source_b_id == s.id %}selected{% endif %}>{{ s.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <button id="btn-compare-sources" class="btn btn-primary" style="padding:0.6rem 1.25rem;font-size:0.82rem;">
+            Compare Sources
+          </button>
+        </div>
+      </div>
+
+      <div id="source-comparison-result">
+        {% if source_comparison %}
+        <div class="comparison-result-card">
+          <div class="overlap-score-banner">
+            <div class="overlap-score-number">{{ source_comparison.overlap_pct }}%</div>
+            <div>
+              <div style="font-size:1rem;color:var(--text-primary);font-weight:500;">Concept Overlap (Jaccard Index)</div>
+              <div class="overlap-score-caption">{{ source_comparison.explanation }}</div>
+            </div>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <div class="section-label">Shared Concepts ({{ source_comparison.shared_count }})</div>
+            <div class="concept-chip-container">
+              {% for sc in source_comparison.shared_concepts %}
+              <span class="concept-chip-sm shared">{{ sc }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.25rem;">
+            <div>
+              <div class="section-label">Unique to "{{ source_comparison.source_a_title }}" ({{ source_comparison.unique_concepts_a|length }})</div>
+              <div class="concept-chip-container">
+                {% for uc in source_comparison.unique_concepts_a %}
+                <span class="concept-chip-sm">{{ uc }}</span>
+                {% endfor %}
+              </div>
+            </div>
+            <div>
+              <div class="section-label">Unique to "{{ source_comparison.source_b_title }}" ({{ source_comparison.unique_concepts_b|length }})</div>
+              <div class="concept-chip-container">
+                {% for uc in source_comparison.unique_concepts_b %}
+                <span class="concept-chip-sm">{{ uc }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="p-4 t-secondary text-center" style="font-size:0.8rem;background:rgba(0,0,0,0.2);border-radius:4px;">
+          Select two sources above to calculate deterministic concept overlap.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 2. Pairwise Concept Comparison -->
+    <div class="comparator-workbench">
+      <div class="t-label t-accent mb-1">Concept Comparator</div>
+      <h3 class="t-h3 mb-2" style="font-size:1.25rem;">Concept Co-Occurrence & Distribution Comparison</h3>
+      <p class="t-secondary" style="font-size:0.82rem;margin-bottom:1.5rem;">
+        Contrast occurrence volumes, mutual sources, and topological co-occurrences between two concepts.
+      </p>
+
+      <div class="comparator-controls">
+        <div>
+          <label class="section-label">Concept A</label>
+          <select id="compare-cpt-a" class="select-control">
+            <option value="">— Select Concept A —</option>
+            {% for c in all_concepts %}
+            <option value="{{ c.id }}" {% if concept_a_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="comparator-vs">VS</div>
+
+        <div>
+          <label class="section-label">Concept B</label>
+          <select id="compare-cpt-b" class="select-control">
+            <option value="">— Select Concept B —</option>
+            {% for c in all_concepts %}
+            <option value="{{ c.id }}" {% if concept_b_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <button id="btn-compare-concepts" class="btn btn-primary" style="padding:0.6rem 1.25rem;font-size:0.82rem;">
+            Compare Concepts
+          </button>
+        </div>
+      </div>
+
+      <div id="concept-comparison-result">
+        {% if concept_comparison %}
+        <div class="comparison-result-card">
+          <div style="font-size:0.95rem;color:var(--text-primary);margin-bottom:1rem;">
+            {{ concept_comparison.explanation }}
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+            <div style="background:rgba(255,255,255,0.02);padding:1rem;border-radius:4px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-weight:500;font-size:1.1rem;color:var(--accent);margin-bottom:0.5rem;">{{ concept_comparison.concept_a.name }}</div>
+              <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.25rem;">Total Occurrences: <strong style="color:var(--text-primary);">{{ concept_comparison.concept_a.total_occurrences }}</strong></div>
+              <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.25rem;">Containing Sources: <strong style="color:var(--text-primary);">{{ concept_comparison.concept_a.source_count }}</strong></div>
+              <div style="font-size:0.78rem;color:var(--text-muted);">Connections: <strong style="color:var(--text-primary);">{{ concept_comparison.concept_a.connection_count }}</strong></div>
+            </div>
+            <div style="background:rgba(255,255,255,0.02);padding:1rem;border-radius:4px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-weight:500;font-size:1.1rem;color:var(--accent);margin-bottom:0.5rem;">{{ concept_comparison.concept_b.name }}</div>
+              <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.25rem;">Total Occurrences: <strong style="color:var(--text-primary);">{{ concept_comparison.concept_b.total_occurrences }}</strong></div>
+              <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.25rem;">Containing Sources: <strong style="color:var(--text-primary);">{{ concept_comparison.concept_b.source_count }}</strong></div>
+              <div style="font-size:0.78rem;color:var(--text-muted);">Connections: <strong style="color:var(--text-primary);">{{ concept_comparison.concept_b.connection_count }}</strong></div>
+            </div>
+          </div>
+          <div class="section-label">Mutual Sources ({{ concept_comparison.shared_source_count }})</div>
+          <div style="margin-top:0.5rem;">
+            {% for s in concept_comparison.shared_sources %}
+            <div style="font-size:0.78rem;padding:0.35rem 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;justify-content:space-between;">
+              <a href="{{ url_for('source_detail', source_id=s.id) }}" style="color:var(--text-primary);text-decoration:none;">{{ s.title }}</a>
+              <span class="num-cell" style="color:var(--text-muted);">{{ s.occurrences_a }} vs {{ s.occurrences_b }} occ</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% else %}
+        <div class="p-4 t-secondary text-center" style="font-size:0.8rem;background:rgba(0,0,0,0.2);border-radius:4px;">
+          Select two concepts above to calculate mutual observations.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+{% endblock %}

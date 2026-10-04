@@ -1,0 +1,7 @@
+# ORVIA 1.0.0 — Personal Research Intelligence Workspace
+# Local-first, deterministic, no external AI services.
+#
+# Install:  pip install -r requirements.txt
+# Python:   3.10+
+
+flask>=3.0.0,<4.0.0

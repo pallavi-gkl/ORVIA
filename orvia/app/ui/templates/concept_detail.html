@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="concept-detail-container">
+
+  <!-- ── BREADCRUMB ───────────────────────────────────────────────────────── -->
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-2 t-secondary">
+      <a href="{{ url_for('concepts_page') }}" class="btn btn-ghost btn-sm" style="padding-left: 0;">
+        ← Back to Concepts
+      </a>
+      <span class="t-muted">/</span>
+      {% if concept.ngram_size == 1 %}
+        <span class="badge" style="background: var(--bg-surface-2); color: var(--text-secondary); border: 1px solid var(--border-subtle); font-size: 11px;">
+          SINGLE WORD
+        </span>
+      {% else %}
+        <span class="badge badge-accent" style="font-size: 11px;">
+          {{ concept.ngram_size }}-WORD PHRASE
+        </span>
+      {% endif %}
+      <span class="t-mono t-muted">{{ concept.name }}</span>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="flex items-center gap-2">
+      <a href="{{ url_for('knowledge', focus=concept.id) }}" class="btn btn-secondary btn-sm" title="Explore concept connections in graph">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 14px; height: 14px; margin-right: 4px;">
+          <circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="12" cy="18" r="3"></circle>
+          <line x1="8.5" y1="7.5" x2="15.5" y2="7.5"></line>
+        </svg>
+        Explore in Graph
+      </a>
+
+      <a href="{{ url_for('search_page', q=concept.name) }}" class="btn btn-ghost btn-sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 14px; height: 14px; margin-right: 4px;">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        Search
+      </a>
+    </div>
+  </div>
+
+  <!-- ── CONCEPT HEADER ────────────────────────────────────────────────────── -->
+  <div class="source-inspection-header mb-8">
+    <div class="t-label t-accent mb-1">DETECTED CONCEPT</div>
+    <h1 class="t-h1">{{ concept.display }}</h1>
+    <div class="flex items-center gap-3 mt-2 t-secondary flex-wrap">
+      <span class="t-mono">{{ concept.frequency }} total occurrences</span>
+      <span>·</span>
+      <span>Observed in {{ concept.source_count }} sources ({{ concept.coverage_pct }}% of collection)</span>
+      <span>·</span>
+      <span class="status-dot active"></span>
+      <span class="t-accent">{{ concept.trend }}</span>
+    </div>
+  </div>
+
+  <!-- ── 4 STAT METRICS ───────────────────────────────────────────────────── -->
+  <div class="overview-metrics-matrix stat-grid mb-8">
+    <div class="metric-cell">
+      <div class="metric-number">{{ concept.frequency }}</div>
+      <div class="metric-caption">Occurrences Observed</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-number">{{ concept.source_count }}</div>
+      <div class="metric-caption">Sources Containing Term</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-number">{{ concept.coverage_pct }}%</div>
+      <div class="metric-caption">Collection Coverage</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-number" style="font-size: var(--text-2xl);">{{ concept.trend }}</div>
+      <div class="metric-caption">{{ concept.trend_description or 'Temporal signal' }}</div>
+    </div>
+  </div>
+
+  <!-- ── 2-COLUMN MAIN CONTENT ────────────────────────────────────────────── -->
+  <div class="grid-2-3">
+
+    <!-- Column 1: Sources Containing This Concept -->
+    <div>
+      <div class="section-header mb-4">
+        <span class="section-title">Sources Containing This Concept</span>
+        <span class="t-mono t-muted">{{ concept.sources|length }} sources</span>
+      </div>
+
+      {% if concept.sources %}
+      <div class="sources-list flex flex-col gap-3">
+        {% for src in concept.sources %}
+        <div class="card-editorial" style="background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--sp-4);">
+          <div class="flex items-center justify-between mb-2">
+            <a href="{{ url_for('source_detail', source_id=src.source_id) }}" class="t-primary font-medium hover-accent" style="text-decoration: none; font-size: var(--text-base);">
+              {{ src.source_title }}
+            </a>
+            <span class="badge" style="background: var(--bg-surface-2); font-size: 11px;">
+              {{ (src.file_type or 'txt')|upper }}
+            </span>
+          </div>
+
+          <div class="flex items-center gap-3 t-muted" style="font-size: var(--text-xs);">
+            <span>
+              <strong style="color: var(--text-primary); font-family: var(--font-mono);">{{ src.occurrences }}</strong> occurrences in document
+            </span>
+            {% if src.in_title %}
+              <span>·</span>
+              <span class="badge badge-accent" style="font-size: 10px; padding: 1px 6px;">Appears in Title</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding: 32px 16px; text-align: center; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-md);">
+        <p class="t-muted">No associated sources found.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Column 2: Related Concepts & Co-occurrences -->
+    <div>
+      <div class="section-header mb-4">
+        <span class="section-title">Related Concepts</span>
+        <span class="t-mono t-muted">Co-occurrence</span>
+      </div>
+
+      <div class="metadata-card" style="background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--sp-4); margin-bottom: var(--sp-6);">
+        <p class="t-secondary mb-4" style="font-size: var(--text-xs);">
+          Pairwise co-occurrence calculated by geometric-mean normalized Jaccard overlap across your research collection.
+        </p>
+
+        {% if concept.related %}
+        <div class="flex flex-col gap-3">
+          {% for rel in concept.related %}
+          <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+            <div class="flex items-center justify-between mb-1">
+              <a href="{{ url_for('concept_detail', concept_id=rel.id) }}" class="t-primary font-medium hover-accent" style="text-decoration: none; font-size: var(--text-sm);">
+                {{ rel.display }}
+              </a>
+              <span class="t-mono" style="font-size: var(--text-xs); color: var(--accent);">
+                {{ rel.strength_pct }}%
+              </span>
+            </div>
+            <div class="flex items-center justify-between t-muted" style="font-size: 11px;">
+              <span>{{ rel.strength_label }}</span>
+              <span>Co-occurs in {{ rel.shared_sources }} source(s)</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="t-muted" style="font-size: var(--text-xs); text-align: center; padding: 16px 0;">
+          No strong co-occurrences calculated yet for this concept.
+        </p>
+        {% endif %}
+      </div>
+
+      <!-- Discovery Actions -->
+      <div class="metadata-card" style="background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--sp-4);">
+        <div class="t-label mb-2">RESEARCH WORKFLOW</div>
+        <p class="t-secondary mb-3" style="font-size: var(--text-xs);">
+          Follow this concept through full-text search or explore its occurrences in investigations.
+        </p>
+        <div class="flex flex-col gap-2">
+          <a href="{{ url_for('knowledge', focus=concept.id) }}" class="btn btn-primary btn-sm" style="width: 100%; justify-content: center;">
+            Explore in Knowledge Graph →
+          </a>
+          <a href="{{ url_for('search_page', q=concept.name) }}" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: center;">
+            Search "{{ concept.name }}" across Sources →
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/explore.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="explore-workspace">
+
+  <!-- ── PAGE HEADER ─────────────────────────────────────────────────────── -->
+  <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="badge badge-accent">EXPLORATION</span>
+      </div>
+      <h2 class="t-h2">Explore</h2>
+      <p class="t-secondary mt-1">Search cross-document indices, review extracted concepts, and inspect primary sources.</p>
+    </div>
+    <button class="btn btn-primary" id="cr-open-btn" type="button"
+            aria-haspopup="dialog" aria-expanded="false" aria-controls="cr-overlay">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Add Sources
+    </button>
+  </div>
+
+  <!-- ── EXPLORATION SEARCH INPUT ──────────────────────────────────────── -->
+  <div class="surface p-4 mb-6">
+    <div class="flex items-center gap-3">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           style="width:20px;height:20px;color:var(--text-muted);flex-shrink:0;">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" class="form-input"
+             style="border:none;background:transparent;font-size:var(--text-base);"
+             placeholder="Search text content, extracted concepts, entities, or tags…">
+      <kbd class="t-mono t-muted" style="background:var(--bg-surface-2);padding:2px 6px;border-radius:4px;font-size:11px;flex-shrink:0;">ENTER</kbd>
+    </div>
+  </div>
+
+  <!-- ── FILTER CHIPS ───────────────────────────────────────────────────── -->
+  <div class="flex gap-2 mb-6" style="flex-wrap:wrap;">
+    <button class="btn btn-sm btn-primary">All Sources ({{ source_count }})</button>
+    <button class="btn btn-sm btn-ghost">Concepts ({{ concept_count }})</button>
+    <button class="btn btn-sm btn-ghost">Documents ({{ document_count }})</button>
+    <button class="btn btn-sm btn-ghost">Topics ({{ topic_count }})</button>
+  </div>
+
+  <!-- ── CONTENT AREA ───────────────────────────────────────────────────── -->
+  {% if source_count == 0 %}
+  <!-- Empty state -->
+  <div class="empty-state empty-state-bordered" style="padding:var(--sp-16) var(--sp-8);">
+    <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+    </svg>
+    <div class="empty-state-title">Bring your first piece of information into ORVIA.</div>
+    <div class="empty-state-body">
+      Your exploration workspace indexes research notes, structured data, and text documents. Once ingested, concepts are discovered and connections become queryable.
+    </div>
+    <button class="btn btn-primary" id="cr-open-empty-btn" type="button"
+            aria-haspopup="dialog" aria-expanded="false" aria-controls="cr-overlay">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Capture Research
+    </button>
+  </div>
+  {% else %}
+  <!-- Sources exist -->
+  <div class="surface p-4">
+    <div class="t-secondary">
+      {{ source_count }} source{{ 's' if source_count != 1 else '' }} indexed.
+      <a href="{{ url_for('sources') }}" style="color:var(--accent);margin-left:0.5rem;">View full library →</a>
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- /explore-workspace -->
+
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     CAPTURE RESEARCH OVERLAY
+     Uses .modal-overlay so orvia.js Escape-key + backdrop-click fire for free.
+     ════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="cr-overlay"
+     role="dialog" aria-modal="true" aria-labelledby="cr-title">
+  <div class="cr-drawer">
+
+    <!-- ── HEADER ──────────────────────────────────────────────────────── -->
+    <div class="cr-header">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="badge badge-accent" style="font-size:0.6rem;letter-spacing:0.12em;">RESEARCH CAPTURE</span>
+        </div>
+        <h2 class="cr-title" id="cr-title">Capture Research</h2>
+        <p class="cr-subtitle">Bring information into your research space.</p>
+      </div>
+      <button class="cr-close-btn" id="cr-close-btn" type="button" aria-label="Close capture interface">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ── METHOD TABS ─────────────────────────────────────────────────── -->
+    <nav class="cr-method-nav" role="tablist" aria-label="Capture method">
+
+      <button class="cr-method-tab active" data-method="upload"
+              role="tab" aria-selected="true" aria-controls="cr-panel-upload"
+              id="cr-tab-upload" type="button">
+        <span class="cr-method-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        </span>
+        <span class="cr-method-label">Upload Files</span>
+        <span class="cr-method-desc">Import existing research material</span>
+      </button>
+
+      <button class="cr-method-tab" data-method="paste"
+              role="tab" aria-selected="false" aria-controls="cr-panel-paste"
+              id="cr-tab-paste" type="button">
+        <span class="cr-method-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+          </svg>
+        </span>
+        <span class="cr-method-label">Paste Content</span>
+        <span class="cr-method-desc">From notes or documentation</span>
+      </button>
+
+      <button class="cr-method-tab" data-method="note"
+              role="tab" aria-selected="false" aria-controls="cr-panel-note"
+              id="cr-tab-note" type="button">
+        <span class="cr-method-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </span>
+        <span class="cr-method-label">Create Research Note</span>
+        <span class="cr-method-desc">Start a source in ORVIA</span>
+      </button>
+
+      <button class="cr-method-tab" data-method="folder"
+              role="tab" aria-selected="false" aria-controls="cr-panel-folder"
+              id="cr-tab-folder" type="button">
+        <span class="cr-method-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </span>
+        <span class="cr-method-label">Import Folder</span>
+        <span class="cr-method-desc">Scan a local directory</span>
+      </button>
+
+    </nav>
+
+    <!-- ── PANELS ──────────────────────────────────────────────────────── -->
+    <div class="cr-panels">
+
+      <!-- ────────────────── A. UPLOAD FILES ─────────────────────────── -->
+      <div class="cr-panel active" id="cr-panel-upload"
+           role="tabpanel" aria-labelledby="cr-tab-upload">
+
+        <!-- Drop zone -->
+        <div class="cr-upload-dropzone" id="cr-dropzone">
+          <input type="file" id="cr-file-input" class="file-input-hidden"
+                 accept=".txt,.text,.csv,.json" multiple>
+          <svg class="cr-dropzone-icon" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <div class="cr-dropzone-prompt">
+            <strong>Drop research material here</strong>
+            <span class="t-secondary"> or </span>
+            <span class="cr-browse-link">browse files</span>
+          </div>
+          <div class="cr-dropzone-formats">
+            Supported: <strong>.txt</strong> &nbsp;·&nbsp; <strong>.csv</strong> &nbsp;·&nbsp; <strong>.json</strong>
+            &nbsp;&nbsp;Up to 25 MB per file &nbsp;·&nbsp; Multiple files supported
+          </div>
+        </div>
+
+        <!-- File list (shown after selection) -->
+        <div class="cr-file-list" id="cr-file-list" style="display:none;">
+          <div class="cr-file-list-header">
+            <span class="cr-file-list-title" id="cr-file-count-label">0 files selected</span>
+            <button class="btn btn-ghost btn-sm" id="cr-add-more-btn" type="button">Add more</button>
+            <!-- Hidden extra input for "add more" -->
+            <input type="file" id="cr-file-input-extra" accept=".txt,.text,.csv,.json" multiple
+                   style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;">
+          </div>
+          <div id="cr-file-entries"></div>
+
+          <!-- Verify summary (shown when >1 file) -->
+          <div class="cr-verify-summary" id="cr-verify-summary" style="display:none;">
+            <div class="cr-verify-row">
+              <span class="cr-verify-label">Detected</span>
+              <span class="cr-verify-value" id="cr-count-detected">0</span>
+            </div>
+            <div class="cr-verify-row">
+              <span class="cr-verify-label">Supported</span>
+              <span class="cr-verify-value cr-verify-ok" id="cr-count-supported">0</span>
+            </div>
+            <div class="cr-verify-row">
+              <span class="cr-verify-label">Unsupported</span>
+              <span class="cr-verify-value cr-verify-warn" id="cr-count-unsupported">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Import progress -->
+        <div class="cr-import-progress" id="cr-upload-progress" style="display:none;">
+          <div class="cr-progress-label">Importing sources…</div>
+          <div id="cr-progress-entries"></div>
+        </div>
+
+        <!-- Error alert -->
+        <div class="cr-alert cr-alert-error" id="cr-upload-error" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               style="width:14px;height:14px;flex-shrink:0;margin-top:1px;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span id="cr-upload-error-msg">An error occurred.</span>
+        </div>
+
+        <!-- Success state -->
+        <div class="cr-success-state" id="cr-upload-success" style="display:none;">
+          <div class="cr-success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="cr-success-heading">Research captured</div>
+          <div class="cr-success-stats" id="cr-upload-success-stats"></div>
+          <div class="cr-success-note">Concepts are being extracted and indexed automatically.</div>
+          <div class="cr-success-actions">
+            <a href="{{ url_for('sources') }}" class="btn btn-primary btn-sm">View Sources</a>
+            <a href="{{ url_for('concepts_page') }}" class="btn btn-ghost btn-sm">Explore Concepts</a>
+            <button class="btn btn-ghost btn-sm" id="cr-upload-continue-btn" type="button">Continue</button>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="cr-panel-footer" id="cr-upload-footer">
+          <span class="cr-footer-hint">Select at least one supported file to import.</span>
+          <button class="btn btn-primary" id="cr-upload-import-btn" type="button" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 style="width:13px;height:13px;">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Import
+          </button>
+        </div>
+      </div><!-- /upload panel -->
+
+
+      <!-- ────────────────── B. PASTE CONTENT ─────────────────────────── -->
+      <div class="cr-panel" id="cr-panel-paste" style="display:none;"
+           role="tabpanel" aria-labelledby="cr-tab-paste">
+
+        <div class="cr-form">
+          <div class="cr-form-section">
+            <div class="form-group">
+              <label class="form-label" for="cr-paste-title">Source title</label>
+              <input type="text" id="cr-paste-title" class="form-input"
+                     placeholder="What is this material about?" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cr-paste-content">Research content</label>
+              <textarea id="cr-paste-content" class="form-textarea cr-content-area"
+                        placeholder="Paste your research material here…"
+                        rows="10" spellcheck="false"></textarea>
+              <div class="cr-word-count">
+                <span>Words: <strong id="cr-paste-words">0</strong></span>
+                <span>Characters: <strong id="cr-paste-chars">0</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Duplicate warning -->
+        <div class="cr-alert cr-alert-warning" id="cr-paste-duplicate" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               style="width:14px;height:14px;flex-shrink:0;margin-top:2px;">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <div>
+            <div id="cr-paste-duplicate-msg">An existing source appears to contain the same material.</div>
+            <div style="margin-top:0.5rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <a href="#" class="btn btn-ghost btn-sm" id="cr-paste-view-existing-btn">View Existing</a>
+              <button class="btn btn-secondary btn-sm" id="cr-paste-force-btn" type="button">Import Anyway</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div class="cr-alert cr-alert-error" id="cr-paste-error" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               style="width:14px;height:14px;flex-shrink:0;margin-top:1px;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span id="cr-paste-error-msg">An error occurred.</span>
+        </div>
+
+        <!-- Success -->
+        <div class="cr-success-state" id="cr-paste-success" style="display:none;">
+          <div class="cr-success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="cr-success-heading">Research captured</div>
+          <div class="cr-success-stats" id="cr-paste-success-stats"></div>
+          <div class="cr-success-actions">
+            <a href="#" class="btn btn-primary btn-sm" id="cr-paste-view-btn">View Source</a>
+            <a href="{{ url_for('concepts_page') }}" class="btn btn-ghost btn-sm">Explore Concepts</a>
+            <button class="btn btn-ghost btn-sm" id="cr-paste-another-btn" type="button">Paste Another</button>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="cr-panel-footer" id="cr-paste-footer">
+          <button class="btn btn-ghost" id="cr-paste-reset-btn" type="button">Clear</button>
+          <button class="btn btn-primary" id="cr-paste-save-btn" type="button">Save as Source</button>
+        </div>
+      </div><!-- /paste panel -->
+
+
+      <!-- ────────────────── C. CREATE RESEARCH NOTE ───────────────────── -->
+      <div class="cr-panel" id="cr-panel-note" style="display:none;"
+           role="tabpanel" aria-labelledby="cr-tab-note">
+
+        <div class="cr-form">
+          <div class="cr-form-section">
+            <div class="form-group">
+              <label class="form-label" for="cr-note-title">Title</label>
+              <input type="text" id="cr-note-title" class="form-input"
+                     placeholder="Name your research note…" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cr-note-content">Content</label>
+              <textarea id="cr-note-content" class="form-textarea cr-content-area"
+                        placeholder="Write your observations, analysis, or notes…"
+                        rows="10" spellcheck="false"></textarea>
+              <div class="cr-word-count">
+                <span>Words: <strong id="cr-note-words">0</strong></span>
+                <span>Characters: <strong id="cr-note-chars">0</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Duplicate warning -->
+        <div class="cr-alert cr-alert-warning" id="cr-note-duplicate" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               style="width:14px;height:14px;flex-shrink:0;margin-top:2px;">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <div>
+            <div id="cr-note-duplicate-msg">An existing source appears to contain the same material.</div>
+            <div style="margin-top:0.5rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <a href="#" class="btn btn-ghost btn-sm" id="cr-note-view-existing-btn">View Existing</a>
+              <button class="btn btn-secondary btn-sm" id="cr-note-force-btn" type="button">Save Anyway</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div class="cr-alert cr-alert-error" id="cr-note-error" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               style="width:14px;height:14px;flex-shrink:0;margin-top:1px;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span id="cr-note-error-msg">An error occurred.</span>
+        </div>
+
+        <!-- Success -->
+        <div class="cr-success-state" id="cr-note-success" style="display:none;">
+          <div class="cr-success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="cr-success-heading">Note saved to workspace</div>
+          <div class="cr-success-stats" id="cr-note-success-stats"></div>
+          <div class="cr-success-actions">
+            <a href="#" class="btn btn-primary btn-sm" id="cr-note-view-btn">View Source</a>
+            <a href="{{ url_for('concepts_page') }}" class="btn btn-ghost btn-sm">Explore Concepts</a>
+            <button class="btn btn-ghost btn-sm" id="cr-note-another-btn" type="button">Create Another</button>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="cr-panel-footer" id="cr-note-footer">
+          <button class="btn btn-ghost" id="cr-note-reset-btn" type="button">Clear</button>
+          <button class="btn btn-primary" id="cr-note-save-btn" type="button">Save Research Note</button>
+        </div>
+      </div><!-- /note panel -->
+
+
+      <!-- ────────────────── D. IMPORT FOLDER ─────────────────────────── -->
+      <div class="cr-panel" id="cr-panel-folder" style="display:none;"
+           role="tabpanel" aria-labelledby="cr-tab-folder">
+
+        <div class="cr-folder-intro">
+          <p class="t-secondary" style="font-size:var(--text-sm);margin-bottom:var(--sp-4);">
+            Select a local folder. ORVIA scans for supported research files (.txt, .csv, .json)
+            and shows a preview before importing anything.
+          </p>
+
+          <div class="cr-folder-select-area" id="cr-folder-select-area">
+            <!-- webkitdirectory is the widely-supported browser API for folder selection -->
+            <input type="file" id="cr-folder-input" class="file-input-hidden"
+                   accept=".txt,.text,.csv,.json" multiple webkitdirectory>
+            <svg class="cr-dropzone-icon" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <div class="cr-dropzone-prompt"><strong>Select a folder</strong></div>
+            <div class="cr-dropzone-formats">ORVIA detects .txt &nbsp;·&nbsp; .csv &nbsp;·&nbsp; .json within it</div>
+          </div>
+        </div>
+
+        <!-- Scan preview (shown after folder selected) -->
+        <div id="cr-folder-preview" style="display:none;">
+          <div class="cr-folder-summary">
+            <div class="cr-verify-summary">
+              <div class="cr-verify-row">
+                <span class="cr-verify-label">Detected</span>
+                <span class="cr-verify-value" id="cr-folder-detected">0</span>
+              </div>
+              <div class="cr-verify-row">
+                <span class="cr-verify-label">Supported</span>
+                <span class="cr-verify-value cr-verify-ok" id="cr-folder-supported">0</span>
+              </div>
+              <div class="cr-verify-row">
+                <span class="cr-verify-label">Unsupported</span>
+                <span class="cr-verify-value cr-verify-warn" id="cr-folder-unsupported">0</span>
+              </div>
+              <div class="cr-verify-row">
+                <span class="cr-verify-label">Ready to import</span>
+                <span class="cr-verify-value cr-verify-ok" id="cr-folder-ready">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="cr-folder-file-table" id="cr-folder-file-table"></div>
+        </div>
+
+        <!-- Progress -->
+        <div class="cr-import-progress" id="cr-folder-progress" style="display:none;">
+          <div class="cr-progress-label">Importing folder sources…</div>
+          <div id="cr-folder-progress-entries"></div>
+        </div>
+
+        <!-- Error -->
+        <div class="cr-alert cr-alert-error" id="cr-folder-error" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               style="width:14px;height:14px;flex-shrink:0;margin-top:1px;">
+            <circle cx="12" cy="12" r="10"></circle>
+          </svg>
+          <span id="cr-folder-error-msg">An error occurred.</span>
+        </div>
+
+        <!-- Success -->
+        <div class="cr-success-state" id="cr-folder-success" style="display:none;">
+          <div class="cr-success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="cr-success-heading">Research captured</div>
+          <div class="cr-success-stats" id="cr-folder-success-stats"></div>
+          <div class="cr-success-actions">
+            <a href="{{ url_for('sources') }}" class="btn btn-primary btn-sm">View Sources</a>
+            <a href="{{ url_for('concepts_page') }}" class="btn btn-ghost btn-sm">Explore Concepts</a>
+            <button class="btn btn-ghost btn-sm" id="cr-folder-continue-btn" type="button">Continue</button>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="cr-panel-footer" id="cr-folder-footer">
+          <span class="cr-footer-hint" id="cr-folder-footer-hint">Select a folder to preview its contents.</span>
+          <button class="btn btn-primary" id="cr-folder-import-btn" type="button" disabled>
+            Import Folder
+          </button>
+        </div>
+      </div><!-- /folder panel -->
+
+    </div><!-- /cr-panels -->
+  </div><!-- /cr-drawer -->
+</div><!-- /cr-overlay -->
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/explore.js') }}"></script>
+{% endblock %}

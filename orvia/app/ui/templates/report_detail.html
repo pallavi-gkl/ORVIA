@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- REPORT WORKSPACE: LEFT NAV + CENTER DOCUMENT + RIGHT CONTEXT          -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="report-workspace-root" data-report-id="{{ workspace.report.id }}">
+
+  <!-- ── Header bar ──────────────────────────────────────────────────────── -->
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;gap:1rem;">
+    <div>
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:0.4rem;">
+        <a href="{{ url_for('reports') }}" style="color:var(--text-muted);text-decoration:none;">Reports</a>
+        &nbsp;/&nbsp;
+        <a href="{{ url_for('investigations') }}" style="color:var(--text-muted);text-decoration:none;">Investigations</a>
+      </div>
+      <h1 class="t-h2" id="report-title-display">{{ workspace.report.title }}</h1>
+      {% if workspace.report.subtitle %}
+      <p class="t-secondary" style="margin-top:0.3rem;">{{ workspace.report.subtitle }}</p>
+      {% endif %}
+    </div>
+    <div style="display:flex;gap:0.5rem;flex-shrink:0;flex-wrap:wrap;">
+      <!-- Status pill -->
+      <span class="report-status-pill status-{{ workspace.report.status | lower | replace('_','-') }}">
+        {{ workspace.report.status.replace('_',' ') }}
+      </span>
+      <span class="report-version-badge">v{{ workspace.report.version }}</span>
+
+      <!-- Actions -->
+      <button class="btn btn-secondary" data-export-markdown data-report-id="{{ workspace.report.id }}"
+        onclick="window.location='/api/reports/{{ workspace.report.id }}/export/markdown'">
+        ↓ Export Markdown
+      </button>
+
+      {% if workspace.report.status == 'DRAFT' %}
+      <button class="btn btn-secondary" data-status-action data-report-id="{{ workspace.report.id }}"
+        data-new-status="IN_REVIEW">
+        → Submit for Review
+      </button>
+      {% elif workspace.report.status == 'IN_REVIEW' %}
+      <button class="btn btn-primary" data-status-action data-report-id="{{ workspace.report.id }}"
+        data-new-status="FINAL">
+        ✓ Finalize Report
+      </button>
+      {% elif workspace.report.status == 'FINAL' %}
+      <button class="btn btn-secondary" data-status-action data-report-id="{{ workspace.report.id }}"
+        data-new-status="DRAFT">
+        ↩ Reopen as Draft
+      </button>
+      {% endif %}
+
+      <button class="btn btn-secondary" id="btn-create-version" data-report-id="{{ workspace.report.id }}">
+        + New Version
+      </button>
+
+      <button class="btn btn-secondary danger-btn" data-delete-report data-report-id="{{ workspace.report.id }}">
+        Delete
+      </button>
+    </div>
+  </div>
+
+  <!-- Flash messages -->
+  <div id="report-flash-zone"></div>
+
+  <!-- ── Workspace 3-column layout ───────────────────────────────────────── -->
+  <div class="report-workspace">
+
+    <!-- ── LEFT: Section Navigation ─────────────────────────────────────── -->
+    <nav class="report-nav-panel">
+      <div style="padding:0 1.25rem;margin-bottom:1rem;">
+        <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:0.5rem;">
+          Sections
+        </div>
+      </div>
+      {% for sec in workspace.sections %}
+      <a class="section-nav-item {% if loop.first %}active{% endif %}"
+         href="#section-{{ sec.id }}"
+         data-section-id="{{ sec.id }}">
+        <span class="section-nav-num">{{ loop.index }}</span>
+        {{ sec.title }}
+      </a>
+      {% else %}
+      <div style="padding:1rem 1.25rem;font-size:0.78rem;color:var(--text-muted);">No sections yet.</div>
+      {% endfor %}
+
+      <div style="padding:1.25rem;border-top:1px solid var(--border-subtle);margin-top:1rem;">
+        <!-- Add section button -->
+        <button class="btn btn-secondary" style="width:100%;font-size:0.78rem;" id="btn-add-section">
+          + Add Section
+        </button>
+      </div>
+    </nav>
+
+    <!-- ── CENTER: Document / Editor ────────────────────────────────────── -->
+    <div class="report-content-panel">
+
+      <!-- Tab switcher: Preview / Edit -->
+      <div class="report-status-tabs" style="margin-bottom:1.5rem;">
+        <button class="report-status-tab {% if active_tab == 'preview' %}active{% endif %}"
+                data-content-tab="preview">Document Preview</button>
+        <button class="report-status-tab {% if active_tab == 'edit' %}active{% endif %}"
+                data-content-tab="edit">Section Editor</button>
+        <button class="report-status-tab {% if active_tab == 'versions' %}active{% endif %}"
+                data-content-tab="versions">Version History</button>
+      </div>
+
+      <!-- PREVIEW TAB -->
+      <div class="report-content-pane {% if active_tab == 'preview' or not active_tab %}active{% endif %}"
+           data-pane="preview">
+        <div class="report-doc">
+          <!-- Header -->
+          <h1 class="report-doc-title">{{ workspace.report.title }}</h1>
+          {% if workspace.report.subtitle %}
+          <p class="report-doc-subtitle">{{ workspace.report.subtitle }}</p>
+          {% endif %}
+          <div class="report-doc-meta">
+            <span><strong>Status:</strong> {{ workspace.report.status }}</span>
+            <span><strong>Version:</strong> v{{ workspace.report.version }}</span>
+            <span><strong>Generated:</strong> {{ workspace.report.generated_at[:10] }}</span>
+            <span><strong>Sources:</strong> {{ workspace.sources | length }}</span>
+            <span><strong>Evidence:</strong> {{ workspace.evidence | length }}</span>
+          </div>
+
+          <!-- Summary -->
+          {% if workspace.report.summary %}
+          <blockquote style="border-left:3px solid rgba(181,196,34,0.4);padding:0.75rem 1rem;color:var(--text-muted);background:rgba(181,196,34,0.04);border-radius:0 3px 3px 0;margin-bottom:2rem;">
+            {{ workspace.report.summary }}
+          </blockquote>
+          {% endif %}
+
+          <!-- Sections -->
+          {% for sec in workspace.sections %}
+          <div class="report-section" id="section-{{ sec.id }}" data-section-id="{{ sec.id }}">
+            <div class="report-section-header">
+              <span class="report-section-title">{{ sec.position + 1 }}. {{ sec.title }}</span>
+              <span class="report-section-type">{{ sec.section_type }}</span>
+            </div>
+            <div class="report-section-content">
+              {% if sec.content %}
+                {{ sec.content | safe }}
+              {% else %}
+                <em style="color:var(--text-muted);">No content recorded for this section.</em>
+              {% endif %}
+            </div>
+          </div>
+          {% else %}
+          <div class="report-empty">
+            <div class="report-empty-title">No sections assembled.</div>
+            <div class="report-empty-body">Use the Section Editor tab to add sections to this report.</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- EDIT TAB -->
+      <div class="report-content-pane {% if active_tab == 'edit' %}active{% endif %}"
+           data-pane="edit" style="display:{% if active_tab == 'edit' %}block{% else %}none{% endif %};">
+
+        <!-- Editable header fields -->
+        <div style="margin-bottom:1.5rem;border-bottom:1px solid var(--border-subtle);padding-bottom:1.5rem;">
+          <label class="form-label">Report Title</label>
+          <input type="text" class="form-input" id="edit-report-title"
+                 value="{{ workspace.report.title }}"
+                 style="margin-bottom:0.75rem;"
+                 data-report-id="{{ workspace.report.id }}">
+          <label class="form-label">Subtitle</label>
+          <input type="text" class="form-input" id="edit-report-subtitle"
+                 value="{{ workspace.report.subtitle or '' }}"
+                 data-report-id="{{ workspace.report.id }}">
+          <button class="btn btn-secondary" style="margin-top:0.75rem;" id="btn-save-report-meta">
+            Save Header
+          </button>
+        </div>
+
+        <!-- Sections editors -->
+        <div id="sections-editor-list" data-report-id="{{ workspace.report.id }}">
+          {% for sec in workspace.sections %}
+          <div class="section-editor" data-section-id="{{ sec.id }}" data-position="{{ sec.position }}">
+            <div class="section-editor-header">
+              <span class="section-handle">⠿</span>
+              <input type="text" class="section-editor-title-input"
+                     value="{{ sec.title }}"
+                     data-section-id="{{ sec.id }}"
+                     data-report-id="{{ workspace.report.id }}">
+              <div class="section-controls">
+                <span class="report-section-type">{{ sec.section_type }}</span>
+                <button class="section-delete-btn" data-delete-section
+                        data-section-id="{{ sec.id }}"
+                        data-report-id="{{ workspace.report.id }}">✕</button>
+              </div>
+            </div>
+            <div class="section-editor-body">
+              <textarea class="section-textarea"
+                        rows="6"
+                        data-section-id="{{ sec.id }}"
+                        data-report-id="{{ workspace.report.id }}">{{ sec.content }}</textarea>
+            </div>
+          </div>
+          {% else %}
+          <p class="t-secondary">No sections. Use the button below to add one.</p>
+          {% endfor %}
+        </div>
+
+        <!-- Add section form (hidden by default) -->
+        <div id="add-section-form" class="inv-inline-form hidden" style="margin-top:1rem;">
+          <label class="form-label">Section Type</label>
+          <select class="form-select" id="new-section-type">
+            {% for st in section_types %}
+            <option value="{{ st }}">{{ st.replace('_', ' ').title() }}</option>
+            {% endfor %}
+          </select>
+          <label class="form-label" style="margin-top:0.75rem;">Title</label>
+          <input type="text" class="form-input" id="new-section-title" placeholder="Section title">
+          <label class="form-label" style="margin-top:0.75rem;">Content</label>
+          <textarea class="form-input section-textarea" id="new-section-content" rows="4"
+                    placeholder="Optional initial content..."></textarea>
+          <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+            <button class="btn btn-primary" id="btn-submit-new-section">Add Section</button>
+            <button class="btn btn-secondary" id="btn-cancel-add-section">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VERSIONS TAB -->
+      <div class="report-content-pane {% if active_tab == 'versions' %}active{% endif %}"
+           data-pane="versions" style="display:{% if active_tab == 'versions' %}block{% else %}none{% endif %};">
+        <h3 style="font-size:0.95rem;font-weight:500;color:var(--text-primary);margin-bottom:1rem;">
+          Version History
+        </h3>
+        {% if versions %}
+        <div>
+          {% for ver in versions %}
+          <div class="version-history-item">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span class="version-number">v{{ ver.version }}</span>
+              <span class="report-status-pill status-{{ ver.status | lower | replace('_','-') }}">
+                {{ ver.status.replace('_',' ') }}
+              </span>
+              <span class="version-status">{{ ver.updated_at|datefmt("%Y-%m-%d %H:%M") }}</span>
+            </div>
+            <div style="display:flex;gap:0.5rem;">
+              <a href="{{ url_for('report_detail', report_id=ver.id) }}"
+                 class="btn btn-secondary" style="font-size:0.72rem;padding:0.2rem 0.6rem;">
+                View
+              </a>
+              {% if ver.id != workspace.report.id %}
+              <button class="btn btn-secondary" style="font-size:0.72rem;padding:0.2rem 0.6rem;"
+                      data-compare-version
+                      data-current-id="{{ workspace.report.id }}"
+                      data-compare-id="{{ ver.id }}">
+                Compare
+              </button>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="report-empty">
+          <div class="report-empty-title">This report has only one version.</div>
+          <div class="report-empty-body">Use "New Version" to snapshot and continue editing a new draft.</div>
+        </div>
+        {% endif %}
+
+        <!-- Version diff panel -->
+        <div id="version-diff-panel" class="inv-inline-form hidden" style="margin-top:1.5rem;">
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">Version Comparison</div>
+          <div id="version-diff-content">
+            <em style="color:var(--text-muted);">Select two versions to compare.</em>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT: Context Panel ──────────────────────────────────────────── -->
+    <aside class="report-context-panel">
+
+      <!-- Quality Metrics -->
+      {% if quality %}
+      <div class="context-panel-section">
+        <div class="context-panel-label">Report Quality</div>
+        <div class="quality-metrics-grid">
+          <div class="quality-metric-cell">
+            <div class="quality-metric-value {% if quality.evidence_coverage_pct >= 80 %}good{% elif quality.evidence_coverage_pct >= 60 %}warn{% else %}danger{% endif %}">
+              {{ quality.evidence_coverage_pct | int }}%
+            </div>
+            <div class="quality-metric-label">Evidence Coverage</div>
+          </div>
+          <div class="quality-metric-cell">
+            <div class="quality-metric-value {% if quality.source_coverage_pct >= 80 %}good{% elif quality.source_coverage_pct >= 60 %}warn{% else %}danger{% endif %}">
+              {{ quality.source_coverage_pct | int }}%
+            </div>
+            <div class="quality-metric-label">Source Coverage</div>
+          </div>
+          <div class="quality-metric-cell">
+            <div class="quality-metric-value {% if quality.citation_completeness_pct >= 90 %}good{% elif quality.citation_completeness_pct >= 70 %}warn{% else %}danger{% endif %}">
+              {{ quality.citation_completeness_pct | int }}%
+            </div>
+            <div class="quality-metric-label">Citation Completeness</div>
+          </div>
+          <div class="quality-metric-cell">
+            <div class="quality-metric-value {% if quality.open_questions_count == 0 %}good{% elif quality.open_questions_count <= 2 %}warn{% else %}danger{% endif %}">
+              {{ quality.open_questions_count }}
+            </div>
+            <div class="quality-metric-label">Open Questions</div>
+          </div>
+        </div>
+        {% if quality.gaps %}
+        <div style="margin-top:0.75rem;">
+          <div class="context-panel-label">Research Gaps</div>
+          {% for g in quality.gaps %}
+          <div class="quality-gap-item">{{ g }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Sources -->
+      <div class="context-panel-section">
+        <div class="context-panel-label">Sources ({{ workspace.sources | length }})</div>
+        {% for entry in workspace.sources %}
+        <div class="context-source-item">
+          <span class="context-source-label">{{ entry.citation_label }}</span>
+          {{ entry.source.title if entry.source else '[Deleted]' }}
+        </div>
+        {% else %}
+        <div class="t-secondary" style="font-size:0.78rem;">No sources linked.</div>
+        {% endfor %}
+      </div>
+
+      <!-- Evidence count -->
+      <div class="context-panel-section">
+        <div class="context-panel-label">Evidence ({{ workspace.evidence | length }})</div>
+        {% for entry in workspace.evidence[:5] %}
+        <div style="font-size:0.78rem;color:var(--text-muted);padding:0.25rem 0;border-bottom:1px solid var(--border-subtle);">
+          <span class="context-source-label">{{ entry.citation_label }}</span>
+          {{ (entry.evidence.statement or '')[:60] }}{% if (entry.evidence.statement or '') | length > 60 %}…{% endif %}
+        </div>
+        {% endfor %}
+        {% if workspace.evidence | length > 5 %}
+        <div style="font-size:0.72rem;color:var(--text-muted);padding-top:0.4rem;">
+          +{{ workspace.evidence | length - 5 }} more evidence items
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Findings -->
+      <div class="context-panel-section">
+        <div class="context-panel-label">Findings ({{ workspace.findings | length }})</div>
+        {% for entry in workspace.findings %}
+        {% set f = entry.finding %}
+        <div style="font-size:0.78rem;padding:0.3rem 0;border-bottom:1px solid var(--border-subtle);">
+          <span class="report-status-pill status-{{ (f.status or 'draft') | lower }}">
+            {{ f.status or 'DRAFT' }}
+          </span>
+          <span style="color:var(--text-muted);margin-left:0.4rem;">{{ f.title }}</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Provenance chain viewer -->
+      <div class="context-panel-section" id="provenance-panel-container" style="display:none;">
+        <div class="context-panel-label">Provenance Chain</div>
+        <div class="provenance-chain" id="provenance-chain-content">
+          <em style="color:var(--text-muted);font-size:0.78rem;">
+            Click a citation to view its provenance chain.
+          </em>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- Version diff modal -->
+<div id="diff-modal-overlay" class="inv-modal-overlay" style="display:none;">
+  <div class="inv-modal" style="max-width:780px;">
+    <div class="inv-modal-header">
+      <span style="font-size:0.95rem;font-weight:500;color:var(--text-primary);">Version Comparison</span>
+      <button onclick="document.getElementById('diff-modal-overlay').style.display='none'"
+              style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;">✕</button>
+    </div>
+    <div id="diff-modal-content">
+      <em style="color:var(--text-muted);">Loading comparison…</em>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/reports.js') }}"></script>
+<script>
+  // Tab switching (inline for reliability)
+  document.querySelectorAll('[data-content-tab]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const tab = this.dataset.contentTab;
+      document.querySelectorAll('[data-content-tab]').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      document.querySelectorAll('.report-content-pane').forEach(p => p.style.display = 'none');
+      const pane = document.querySelector('[data-pane="' + tab + '"]');
+      if (pane) pane.style.display = 'block';
+    });
+  });
+
+  // Add section button
+  document.getElementById('btn-add-section').addEventListener('click', function() {
+    const form = document.getElementById('add-section-form');
+    form.classList.toggle('hidden');
+  });
+
+  document.getElementById('btn-cancel-add-section').addEventListener('click', function() {
+    document.getElementById('add-section-form').classList.add('hidden');
+  });
+</script>
+{% endblock %}

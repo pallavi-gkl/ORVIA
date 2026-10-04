@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if page_title %}{{ page_title }} — {% endif %}{{ app_name }} | Personal Research Intelligence Workspace</title>
+  
+  <!-- Minimalist Orbital O SVG Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%238b8984' stroke-width='1.5' stroke-dasharray='4 2'/%3E%3Cellipse cx='16' cy='16' rx='13' ry='6' fill='none' stroke='%23b5c422' stroke-width='2' transform='rotate(-25 16 16)'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%23e2e0db'/%3E%3Ccircle cx='27' cy='11' r='2' fill='%23b5c422'/%3E%3C/svg%3E">
+
+  <!-- Core Design System CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/orvia.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="orvia-shell">
+    
+    <!-- ── SIDEBAR ─────────────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="app-sidebar" aria-label="Main Navigation">
+      <!-- Header / Logo -->
+      <div class="sidebar-header">
+        <a href="{{ url_for('overview') }}" class="sidebar-logo" title="ORVIA Home">
+          <!-- Geometric Orbital O Logo -->
+          <svg class="logo-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="16" cy="16" r="13" stroke="#383939" stroke-width="1.5" stroke-dasharray="5 2.5" />
+            <ellipse cx="16" cy="16" rx="13" ry="5.5" stroke="#b5c422" stroke-width="1.8" transform="rotate(-28 16 16)" />
+            <circle cx="16" cy="16" r="3.2" fill="#e2e0db" />
+            <circle cx="27" cy="10.5" r="1.8" fill="#b5c422" />
+            <circle cx="5" cy="21.5" r="1.5" fill="#8b8984" />
+          </svg>
+          <span class="logo-text">ORVIA</span>
+        </a>
+        <button class="sidebar-toggle" id="sidebar-toggle-btn" aria-label="Toggle sidebar collapse" title="Collapse sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Navigation Links -->
+      <div class="sidebar-body">
+        
+        <!-- SECTION: WORKSPACE -->
+        <div class="nav-section">
+          <div class="nav-section-label">Workspace</div>
+          
+          <a href="{{ url_for('overview') }}" class="nav-item {% if active_page == 'overview' %}active{% endif %}" data-tooltip="Overview">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+              </svg>
+            </span>
+            <span class="nav-label">Overview</span>
+          </a>
+
+          <a href="{{ url_for('investigations') }}" class="nav-item {% if active_page == 'investigations' %}active{% endif %}" data-tooltip="Investigations">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <circle cx="11" cy="11" r="7"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                <line x1="11" y1="8" x2="11" y2="14"></line>
+                <line x1="8" y1="11" x2="14" y2="11"></line>
+              </svg>
+            </span>
+            <span class="nav-label">Investigations</span>
+          </a>
+
+          <a href="/timeline" class="nav-item {% if active_page == 'timeline' %}active{% endif %}" data-tooltip="Research Timeline">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </span>
+            <span class="nav-label">Timeline</span>
+          </a>
+        </div>
+
+        <!-- SECTION: DISCOVERY -->
+        <div class="nav-section">
+          <div class="nav-section-label">Discovery</div>
+          
+          <a href="{{ url_for('search_page') }}" class="nav-item {% if active_page == 'search' %}active{% endif %}" data-tooltip="Search Intelligence">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <span class="nav-label">Search</span>
+          </a>
+
+          <a href="{{ url_for('sources') }}" class="nav-item {% if active_page == 'sources' %}active{% endif %}" data-tooltip="Sources Research Library">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+            </span>
+            <span class="nav-label">Sources</span>
+          </a>
+
+          <a href="{{ url_for('concepts_page') }}" class="nav-item {% if active_page == 'concepts' %}active{% endif %}" data-tooltip="Concept Intelligence">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <circle cx="12" cy="12" r="3.5"></circle>
+                <path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path>
+              </svg>
+            </span>
+            <span class="nav-label">Concepts</span>
+          </a>
+
+          <a href="{{ url_for('explore') }}" class="nav-item {% if active_page == 'explore' %}active{% endif %}" data-tooltip="Explore Concepts & Connections">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+              </svg>
+            </span>
+            <span class="nav-label">Explore</span>
+          </a>
+
+          <a href="{{ url_for('knowledge') }}" class="nav-item {% if active_page == 'knowledge' %}active{% endif %}" data-tooltip="Knowledge Graph & Maps">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="18" cy="6" r="3"></circle>
+                <circle cx="12" cy="18" r="3"></circle>
+                <line x1="8.5" y1="7.5" x2="15.5" y2="7.5"></line>
+                <line x1="7.5" y1="8.5" x2="10.5" y2="15.5"></line>
+                <line x1="16.5" y1="8.5" x2="13.5" y2="15.5"></line>
+              </svg>
+            </span>
+            <span class="nav-label">Knowledge</span>
+          </a>
+        </div>
+
+        <!-- SECTION: INTELLIGENCE -->
+        <div class="nav-section">
+          <div class="nav-section-label">Intelligence</div>
+
+          <a href="{{ url_for('analyze') }}" class="nav-item {% if active_page == 'analyze' %}active{% endif %}" data-tooltip="Analysis & Patterns">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+            </span>
+            <span class="nav-label">Analyze</span>
+          </a>
+
+          <a href="{{ url_for('reports') }}" class="nav-item {% if active_page == 'reports' %}active{% endif %}" data-tooltip="Research Reports">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <line x1="10" y1="9" x2="8" y2="9"></line>
+              </svg>
+            </span>
+            <span class="nav-label">Reports</span>
+          </a>
+        </div>
+
+        <!-- SECTION: SYSTEM -->
+        <div class="nav-section">
+          <div class="nav-section-label">System</div>
+
+          <a href="{{ url_for('settings') }}" class="nav-item {% if active_page == 'settings' %}active{% endif %}" data-tooltip="Settings & Workspace">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </span>
+            <span class="nav-label">Settings</span>
+          </a>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="sidebar-footer">
+        <div class="sidebar-version">ORVIA v{{ app_version }}</div>
+      </div>
+    </aside>
+
+    <!-- ── TOP BAR ─────────────────────────────────────────────────────────── -->
+    <header class="topbar" aria-label="Top navigation">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open mobile navigation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <div class="page-heading">
+          <h1>{{ page_title }}</h1>
+          <div class="page-breadcrumb">
+            <a href="{{ url_for('overview') }}">Workspace</a>
+            <span>/</span>
+            <span>{{ page_title }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <!-- Global Search Trigger -->
+        <button class="search-trigger" id="cmd-search-trigger" aria-label="Search workspace">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span class="search-trigger-label">Search ORVIA...</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+
+        <!-- System Status Pill -->
+        <div class="app-meta-pill" title="Local SQLite persistent store active">
+          <span class="dot"></span>
+          <span>LOCAL ENGINE</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── MAIN CONTENT ───────────────────────────────────────────────────── -->
+    <main class="content">
+      <div class="page">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+
+  </div>
+
+  <!-- ── MOBILE OVERLAY ────────────────────────────────────────────────────── -->
+  <div class="mobile-overlay" id="mobile-overlay" aria-hidden="true"></div>
+
+  <!-- ── COMMAND PALETTE (CTRL+K) ──────────────────────────────────────────── -->
+  <div class="cmd-overlay" id="cmd-palette-overlay" role="dialog" aria-modal="true" aria-label="Command Palette">
+    <div class="cmd-palette">
+      <div class="cmd-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" class="cmd-input" id="cmd-search-input" placeholder="Type to jump to a page or action..." autocomplete="off">
+        <kbd class="cmd-esc">ESC</kbd>
+      </div>
+
+      <div class="cmd-body" id="cmd-palette-body">
+        <div class="cmd-section-label">Navigation</div>
+        
+        <a href="{{ url_for('overview') }}" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+          </svg>
+          <span>Jump to Overview</span>
+        </a>
+
+        <a href="{{ url_for('search_page') }}" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span>Jump to Search Intelligence</span>
+        </a>
+
+        <a href="{{ url_for('investigations') }}" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span>Jump to Investigations</span>
+        </a>
+
+        <a href="{{ url_for('sources') }}" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <span>Jump to Sources (Research Library)</span>
+        </a>
+
+        <a href="{{ url_for('concepts_page') }}" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="3.5"></circle>
+            <path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path>
+          </svg>
+          <span>Jump to Concept Intelligence</span>
+        </a>
+
+        <a href="{{ url_for('explore') }}" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+          </svg>
+          <span>Jump to Explore (Sources & Concepts)</span>
+        </a>
+
+        <a href="{{ url_for('knowledge') }}" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="12" cy="18" r="3"></circle>
+          </svg>
+          <span>Jump to Knowledge Graph</span>
+        </a>
+
+        <a href="{{ url_for('analyze') }}" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span>Jump to Analyze</span>
+        </a>
+
+        <a href="{{ url_for('reports') }}" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          </svg>
+          <span>Jump to Reports</span>
+        </a>
+
+        <a href="{{ url_for('settings') }}" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <span>Jump to Settings</span>
+        </a>
+
+        <a href="/timeline" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>Jump to Research Timeline</span>
+        </a>
+
+        <a href="/compare-sources" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span>Compare Sources (Concept Overlap)</span>
+        </a>
+
+        <div class="cmd-section-label">Actions</div>
+
+        <a href="{{ url_for('investigations') }}" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>New Research Investigation</span>
+        </a>
+
+        <a href="{{ url_for('explore') }}" class="cmd-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Add New Source</span>
+        </a>
+
+        <div class="cmd-empty" id="cmd-empty-state" style="display: none;">
+          No matching commands or pages found.
+        </div>
+      </div>
+
+      <div class="cmd-footer">
+        <div class="cmd-hint"><kbd>↑</kbd><kbd>↓</kbd> navigate</div>
+        <div class="cmd-hint"><kbd>↵</kbd> select</div>
+        <div class="cmd-hint"><kbd>esc</kbd> close</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core JavaScript -->
+  <script src="{{ url_for('static', filename='js/orvia.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

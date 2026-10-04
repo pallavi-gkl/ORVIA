@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="source-detail-container">
+
+  <!-- ── BREADCRUMB & BACK LINK ───────────────────────────────────────────── -->
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-2 t-secondary">
+      <a href="{{ url_for('sources') }}" class="btn btn-ghost btn-sm" style="padding-left: 0;">
+        ← Back to Sources
+      </a>
+      <span class="t-muted">/</span>
+      <span class="badge badge-accent">{{ (source.file_type or 'txt')|upper }}</span>
+      <span class="t-mono t-muted">{{ source.filename }}</span>
+    </div>
+
+    <!-- Actions toolbar -->
+    <div class="flex items-center gap-2">
+      <button class="btn btn-secondary btn-sm" id="edit-title-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        Edit Title
+      </button>
+
+      <button class="btn btn-secondary btn-sm" id="copy-ref-btn" data-id="{{ source.id }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        Copy ID
+      </button>
+
+      <button class="btn btn-danger btn-sm" id="delete-source-btn" data-id="{{ source.id }}" data-title="{{ source.title }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        Remove
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SOURCE HEADER ────────────────────────────────────────────────────── -->
+  <div class="source-inspection-header mb-8">
+    <div class="t-label t-accent mb-1">RESEARCH SOURCE</div>
+    <h1 class="t-h1" id="source-title-display">{{ source.title }}</h1>
+    <div class="flex items-center gap-3 mt-2 t-secondary flex-wrap">
+      <span class="t-mono">{{ source.filename }}</span>
+      <span>·</span>
+      <span>Imported {{ (source.imported_at|string)[:10] if source.imported_at else (source.created_at|string)[:10] }}</span>
+      <span>·</span>
+      <span class="t-mono">{{ (source.file_size / 1024)|round(1) }} KB</span>
+      <span>·</span>
+      <span class="status-dot active"></span>
+      <span class="t-accent">Indexed</span>
+    </div>
+  </div>
+
+  <!-- ── 2-COLUMN INSPECTION LAYOUT ───────────────────────────────────────── -->
+  <div class="grid-2-3">
+
+    <!-- Column 1: Content Preview -->
+    <div>
+      <div class="section-header">
+        <span class="section-title">Content Preview</span>
+        <span class="t-mono t-muted">
+          {% if source.word_count > 0 %}{{ '{:,}'.format(source.word_count) }} words{% endif %}
+        </span>
+      </div>
+
+      <div class="content-preview-pane">
+        {% if source.file_type == 'csv' and csv_preview_rows %}
+          <!-- Tabular CSV Preview -->
+          <div class="table-wrap mb-4" style="max-height: 520px; overflow: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  {% for h in csv_preview_rows[0] %}
+                  <th>{{ h }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in csv_preview_rows[1:] %}
+                <tr>
+                  {% for cell in row %}
+                  <td>{{ cell }}</td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if stats.row_count and stats.row_count > 50 %}
+          <div class="t-mono t-muted text-center" style="font-size: 11px;">
+            Showing first 50 rows of {{ stats.row_count }} data rows.
+          </div>
+          {% endif %}
+
+        {% elif source.file_type == 'json' %}
+          <!-- Structured JSON Code View -->
+          <pre class="content-code-block"><code>{{ source.content }}</code></pre>
+
+        {% else %}
+          <!-- Formatted Plain Text / Markdown View -->
+          <div class="content-text-block">
+            {{ source.content }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Column 2: Research Information & Metadata Panel -->
+    <div>
+      <div class="section-header">
+        <span class="section-title">Research Information</span>
+      </div>
+
+      <div class="surface p-5 mb-6">
+        <div class="t-label mb-3">Deterministic Metrics</div>
+
+        <div class="metadata-grid">
+          <div class="meta-row">
+            <span class="meta-key">Format:</span>
+            <span class="meta-val t-mono">{{ (source.file_type or 'txt')|upper }}</span>
+          </div>
+
+          <div class="meta-row">
+            <span class="meta-key">File Size:</span>
+            <span class="meta-val t-mono">{{ (source.file_size / 1024)|round(2) }} KB</span>
+          </div>
+
+          <div class="meta-row">
+            <span class="meta-key">Words:</span>
+            <span class="meta-val t-mono">{{ '{:,}'.format(source.word_count) }}</span>
+          </div>
+
+          <div class="meta-row">
+            <span class="meta-key">Characters:</span>
+            <span class="meta-val t-mono">{{ '{:,}'.format(source.character_count) }}</span>
+          </div>
+
+          {% if stats.line_count %}
+          <div class="meta-row">
+            <span class="meta-key">Lines:</span>
+            <span class="meta-val t-mono">{{ '{:,}'.format(stats.line_count) }}</span>
+          </div>
+          {% endif %}
+
+          {% if stats.paragraph_count %}
+          <div class="meta-row">
+            <span class="meta-key">Paragraphs:</span>
+            <span class="meta-val t-mono">{{ stats.paragraph_count }}</span>
+          </div>
+          {% endif %}
+
+          {% if stats.row_count is defined %}
+          <div class="meta-row">
+            <span class="meta-key">CSV Rows:</span>
+            <span class="meta-val t-mono">{{ stats.row_count }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">CSV Columns:</span>
+            <span class="meta-val t-mono">{{ stats.column_count }}</span>
+          </div>
+          {% endif %}
+
+          {% if stats.structure_type %}
+          <div class="meta-row">
+            <span class="meta-key">JSON Type:</span>
+            <span class="meta-val t-mono">{{ stats.structure_type }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Root Items:</span>
+            <span class="meta-val t-mono">{{ stats.item_count }}</span>
+          </div>
+          {% endif %}
+
+          <div class="meta-row">
+            <span class="meta-key">Imported:</span>
+            <span class="meta-val t-mono">{{ (source.imported_at|string)[:10] if source.imported_at else (source.created_at|string)[:10] }}</span>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="flex items-center justify-between mb-3">
+          <div class="t-label">Intelligence Pipeline Status</div>
+          <button class="btn btn-ghost btn-sm" id="reanalyze-source-btn" data-id="{{ source.id }}" style="padding: 2px 8px; font-size: 11px;">
+            {% if analysis_status and analysis_status.status == 'analyzed' %}Reanalyze{% else %}Run Analysis{% endif %}
+          </button>
+        </div>
+        <div class="metadata-grid mb-4">
+          <div class="meta-row">
+            <span class="meta-key">Concepts:</span>
+            {% if analysis_status and analysis_status.status == 'analyzed' %}
+              <span class="meta-val" style="color: var(--accent); font-weight: 500;">
+                Analyzed ({{ concepts|length }} detected)
+              </span>
+            {% elif analysis_status and analysis_status.status == 'needs_reanalysis' %}
+              <span class="meta-val" style="color: var(--warning); font-weight: 500;">Needs reanalysis</span>
+            {% else %}
+              <span class="meta-val t-muted">Not analyzed yet</span>
+            {% endif %}
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Relationships:</span>
+            {% if analysis_status and analysis_status.status == 'analyzed' %}
+              <span class="meta-val" style="color: var(--text-secondary);">Calculated</span>
+            {% else %}
+              <span class="meta-val t-muted">Not analyzed yet</span>
+            {% endif %}
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Claims:</span>
+            <span class="meta-val t-muted">Phase 7</span>
+          </div>
+        </div>
+
+        <div class="t-label mb-2">Detected Concepts</div>
+        {% if concepts %}
+        <div class="flex flex-wrap gap-2 mb-4">
+          {% for c in concepts %}
+          <a href="{{ url_for('concept_detail', concept_id=c.id) }}"
+             class="chip"
+             style="text-decoration: none; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"
+             title="{{ c.occurrences }} occurrences in document{% if c.in_title %} · Appears in title{% endif %}">
+            <span>{{ c.display }}</span>
+            <span class="t-mono t-muted" style="font-size: 10px;">×{{ c.occurrences }}</span>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="t-muted mb-4" style="font-size: var(--text-xs);">
+          No concepts detected yet for this source.
+        </p>
+        {% endif %}
+
+        <hr class="divider">
+
+        <div class="t-label mb-2">Fingerprint (SHA-256)</div>
+        <div class="content-hash-pill" title="{{ source.content_hash }}">
+          <span class="t-mono truncate" style="max-width: 220px;">{{ source.content_hash }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ── EDIT TITLE MODAL ──────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="edit-title-modal" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-dialog-sm">
+    <div class="modal-header">
+      <h3 class="t-h3">Edit Source Title</h3>
+      <button class="modal-close-btn" id="close-edit-modal-btn">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="edit-title-input">Source Title</label>
+        <input type="text" id="edit-title-input" class="form-input" value="{{ source.title }}">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="cancel-edit-btn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="save-edit-btn">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── DELETE CONFIRMATION MODAL ────────────────────────────────────────── -->
+<div class="modal-overlay" id="delete-source-modal" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-dialog-sm">
+    <div class="modal-header">
+      <h3 class="t-h3">Remove this source from ORVIA?</h3>
+      <button class="modal-close-btn" id="close-detail-delete-btn">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="t-secondary mb-2">{{ source.title }}</p>
+      <p class="t-muted" style="font-size: var(--text-sm);">
+        This will remove the source and its indexed text from your research workspace. This action cannot be undone.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="cancel-detail-delete-btn">Cancel</button>
+      <button type="button" class="btn btn-danger" id="confirm-detail-delete-btn">Remove Source</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const reanalyzeBtn = document.getElementById('reanalyze-source-btn');
+  if (reanalyzeBtn) {
+    reanalyzeBtn.addEventListener('click', async () => {
+      const sourceId = reanalyzeBtn.getAttribute('data-id');
+      reanalyzeBtn.disabled = true;
+      reanalyzeBtn.textContent = 'Analyzing...';
+      try {
+        const resp = await fetch(`/api/concepts/analyze/${sourceId}`, { method: 'POST' });
+        const data = await resp.json();
+        if (data.status === 'ok') {
+          window.location.reload();
+        } else {
+          alert('Analysis error: ' + (data.error || 'Failed'));
+          reanalyzeBtn.disabled = false;
+          reanalyzeBtn.textContent = 'Reanalyze';
+        }
+      } catch (e) {
+        alert('Network error during analysis.');
+        reanalyzeBtn.disabled = false;
+        reanalyzeBtn.textContent = 'Reanalyze';
+      }
+    });
+  }
+</script>
+{% endblock %}

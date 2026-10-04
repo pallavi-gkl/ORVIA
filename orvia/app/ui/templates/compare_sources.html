@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-5">
+  <div class="t-label t-accent mb-1">Source Intelligence</div>
+  <h2 class="t-h2">Source Comparison</h2>
+  <p class="t-secondary mt-2">Select two sources to inspect their concept overlap. Overlap is computed from concepts observed in both sources — not semantic similarity.</p>
+</div>
+
+<!-- Source selector form -->
+<div class="surface p-5 mb-6" style="border-radius:var(--radius-md);">
+  <form method="GET" action="/compare-sources" class="flex gap-4 flex-wrap items-end">
+    <div class="form-group" style="flex:1; min-width:200px;">
+      <label class="form-label">Source A</label>
+      <select name="a" class="form-select form-input">
+        <option value="">Select a source…</option>
+        {% for src in all_sources %}
+        <option value="{{ src.id }}" {% if source_a and src.id == source_a.id %}selected{% endif %}>{{ src.title[:60] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="flex:1; min-width:200px;">
+      <label class="form-label">Source B</label>
+      <select name="b" class="form-select form-input">
+        <option value="">Select a source…</option>
+        {% for src in all_sources %}
+        <option value="{{ src.id }}" {% if source_b and src.id == source_b.id %}selected{% endif %}>{{ src.title[:60] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <button type="submit" class="btn btn-primary">Compare Sources</button>
+    </div>
+  </form>
+</div>
+
+{% if comparison %}
+<!-- Comparison results -->
+<div class="mb-4">
+  <div class="flex gap-3 flex-wrap mb-5">
+    <div class="surface p-4" style="flex:1; min-width:140px; border-left:3px solid #b5c422; border-radius:var(--radius-sm);">
+      <div class="metric-number">{{ comparison.shared_concepts|length }}</div>
+      <div class="metric-caption">Shared Concepts</div>
+    </div>
+    <div class="surface p-4" style="flex:1; min-width:140px; border-left:3px solid #8b8984; border-radius:var(--radius-sm);">
+      <div class="metric-number">{{ comparison.unique_to_a|length }}</div>
+      <div class="metric-caption">Unique to Source A</div>
+    </div>
+    <div class="surface p-4" style="flex:1; min-width:140px; border-left:3px solid #8b8984; border-radius:var(--radius-sm);">
+      <div class="metric-number">{{ comparison.unique_to_b|length }}</div>
+      <div class="metric-caption">Unique to Source B</div>
+    </div>
+    <div class="surface p-4" style="flex:1; min-width:140px; border-left:3px solid #e2e0db; border-radius:var(--radius-sm);">
+      <div class="metric-number">{{ (comparison.jaccard_overlap * 100)|round(1) }}%</div>
+      <div class="metric-caption">Concept Overlap</div>
+    </div>
+  </div>
+
+  <p class="t-muted" style="font-size:0.75rem; margin-bottom:1.5rem;">
+    {{ comparison.overlap_label }} · Jaccard coefficient: {{ comparison.jaccard_overlap }}
+  </p>
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.5rem;">
+    <!-- Shared Concepts -->
+    <div class="surface p-4" style="border-radius:var(--radius-md);">
+      <div class="t-label t-accent mb-3">Shared Concepts ({{ comparison.shared_concepts|length }})</div>
+      {% if comparison.shared_concepts %}
+        <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+          {% for c in comparison.shared_concepts %}
+          <a href="/concepts/{{ c.id }}" class="badge badge-default" style="text-decoration:none; font-size:0.8rem; padding:0.25rem 0.55rem;">{{ c.name }}</a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="t-muted" style="font-size:0.82rem;">No shared concepts detected between these two sources.</p>
+      {% endif %}
+    </div>
+
+    <!-- Unique Concepts -->
+    <div style="display:flex; flex-direction:column; gap:1rem;">
+      <div class="surface p-4" style="border-radius:var(--radius-md);">
+        <div class="t-label mb-2">Unique to: {{ source_a.title[:40] if source_a else 'Source A' }} ({{ comparison.unique_to_a|length }})</div>
+        <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+          {% for c in comparison.unique_to_a[:15] %}
+          <span class="badge" style="background:rgba(255,255,255,0.04); color:var(--text-secondary); font-size:0.75rem;">{{ c.name }}</span>
+          {% endfor %}
+        </div>
+        {% if comparison.unique_to_a|length > 15 %}
+        <p class="t-muted mt-2" style="font-size:0.72rem;">+{{ comparison.unique_to_a|length - 15 }} more concepts</p>
+        {% endif %}
+      </div>
+
+      <div class="surface p-4" style="border-radius:var(--radius-md);">
+        <div class="t-label mb-2">Unique to: {{ source_b.title[:40] if source_b else 'Source B' }} ({{ comparison.unique_to_b|length }})</div>
+        <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+          {% for c in comparison.unique_to_b[:15] %}
+          <span class="badge" style="background:rgba(255,255,255,0.04); color:var(--text-secondary); font-size:0.75rem;">{{ c.name }}</span>
+          {% endfor %}
+        </div>
+        {% if comparison.unique_to_b|length > 15 %}
+        <p class="t-muted mt-2" style="font-size:0.72rem;">+{{ comparison.unique_to_b|length - 15 }} more concepts</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% elif source_a or source_b %}
+<div class="surface p-5" style="border-radius:var(--radius-md); text-align:center;">
+  <p class="t-secondary">Select both Source A and Source B to compute their concept comparison.</p>
+</div>
+{% endif %}
+
+<div class="mt-5" style="border-top:1px solid var(--border-default); padding-top:1rem;">
+  <a href="{{ url_for('sources') }}" class="t-muted" style="font-size:0.82rem;">← Back to Sources</a>
+</div>
+{% endblock %}

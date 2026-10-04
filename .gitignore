@@ -1,0 +1,57 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyw~
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# ── Virtual environments ───────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+.env/
+ENV/
+
+# ── Environment configuration ─────────────────────────────────────────────────
+.env
+# Keep the example:
+!.env.example
+
+# ── ORVIA runtime data ─────────────────────────────────────────────────────────
+data/orvia.db
+data/orvia.db-wal
+data/orvia.db-shm
+data/backups/
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
+logs/*.log
+*.log
+
+# ── Test/coverage artifacts ───────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.pytest_cache
+
+# ── Editor / OS ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+scratch/
+tmp/
+*.tmp
