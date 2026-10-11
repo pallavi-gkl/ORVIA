@@ -27,6 +27,8 @@ class Config:
         database_path: Path | None = None,
         log_level: str = "INFO",
         debug: bool = False,
+        host: str | None = None,
+        port: int | None = None,
     ) -> None:
         self.APP_NAME: str = app_name
         self.VERSION: str = version
@@ -37,6 +39,8 @@ class Config:
         )
         self.LOG_LEVEL: str = log_level.upper()
         self.DEBUG: bool = debug
+        self.HOST: str = host or "127.0.0.1"
+        self.PORT: int = port if port is not None else 5000
 
     # ------------------------------------------------------------------
     # Factory
@@ -55,12 +59,27 @@ class Config:
             p = Path(raw_db_path)
             database_path = p if p.is_absolute() else _PROJECT_ROOT / p
 
+        # Resolve port: PORT (standard Render/cloud) -> ORVIA_PORT -> 5000
+        raw_port = os.environ.get("PORT") or os.environ.get("ORVIA_PORT")
+        port = int(raw_port) if raw_port and raw_port.isdigit() else 5000
+
+        # Resolve host: ORVIA_HOST / HOST -> 0.0.0.0 if on Render or PORT present -> 127.0.0.1
+        env_host = os.environ.get("ORVIA_HOST") or os.environ.get("HOST")
+        if env_host:
+            host = env_host
+        elif os.environ.get("RENDER") or os.environ.get("PORT"):
+            host = "0.0.0.0"
+        else:
+            host = "127.0.0.1"
+
         return cls(
             app_name=os.environ.get("ORVIA_APP_NAME", "ORVIA"),
             version=os.environ.get("ORVIA_VERSION", "0.1.0"),
             database_path=database_path,
             log_level=os.environ.get("ORVIA_LOG_LEVEL", "INFO"),
             debug=_bool(os.environ.get("ORVIA_DEBUG", "false")),
+            host=host,
+            port=port,
         )
 
     # ------------------------------------------------------------------
@@ -101,5 +120,7 @@ class Config:
             f"VERSION={self.VERSION!r}, "
             f"DATABASE_PATH={self.DATABASE_PATH!r}, "
             f"LOG_LEVEL={self.LOG_LEVEL!r}, "
-            f"DEBUG={self.DEBUG!r})"
+            f"DEBUG={self.DEBUG!r}, "
+            f"HOST={self.HOST!r}, "
+            f"PORT={self.PORT!r})"
         )
